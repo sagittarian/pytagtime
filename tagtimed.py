@@ -64,25 +64,21 @@
 #    }
 #}
 #
-#$launchTime = time();
+# XXX locking
 
 import os
+import sys
 import time
 
+from settings import settings
 
 def callcmd(cmd):
     if subprocess.call(cmd) != 0:
         print('SYSERR:', cmd, file=sys.stderr)
 
 launchtime = time.time()
-SETTINGS_FILE = os.path.expanduser('~/.tagtimerc')
 
-class Settings:
-    def __init__(self, settingsfile=SETTINGS_FILE):
-        self.settingsfile = SETTINGS_FILE
-
-settings = Settings()
-
+import util
 from util import *
 
 lstping = util.prevping(launchtime)
@@ -97,58 +93,46 @@ cmd = os.path.join(path, 'launch.py')
 if subprocess.call(cmd) != 0:
     print('SYSERR:', cmd, file=sys.stderr)
 
-print("TagTime is watching you! Last ping would've been", ss(time.time()-lstping), "ago.";, file=sys.stderr)
+print("TagTime is watching you! Last ping would've been",
+      ss(time.time()-lstping), "ago.", file=sys.stderr)
 
 start = time.time()
 i = 1
 
 while True:
-#while(1) {
-  # sleep till next ping but check again in at most a few seconds in
-  # case computer was off (should be event-based and check upon wake).
-  time.sleep(clip(nxtping - time.time(), 0, 2));
-  now = time.time()
+    # sleep till next ping but check again in at most a few seconds in
+    # case computer was off (should be event-based and check upon wake).
+    time.sleep(clip(nxtping - time.time(), 0, 2));
+    now = time.time()
 
-  if nxtping <= now:
-      if catchup or nxtping > now - retrothresh:
-          if not playsound:
-              print('\a', file=sys.stderr)
-          else:
-              callcmd(playsound)
+    if nxtping <= now:
+        if catchup or nxtping > now - retrothresh:
+            if not playsound:
+                print('\a', file=sys.stderr)
+            else:
+                callcmd(playsound)
 
     # invokes popup for this ping plus additional popups if there were more
     #   pings while answering this one:
     cmd = [os.path.join(path, 'launch.py'), 'quiet', '&'];
     callcmd(cmd)
-#    print STDERR annotime(padl($i," ",4).": PING! gap ".
-#			  ss($nxtping-$lstping)."  avg ".
-#                          ss((0.0+time()-$start)/$i). " tot ".
-#                          ss(0.0+time()-$start), $nxtping, 72), "\n";
-#    $lstping = $nxtping;
-#    $nxtping = nextping($nxtping);
-#    $i++;
-#  }
-#}
-#
+    s = '{i: 4}: PING! gap {gap} avg {avg} tot {tot}'.format(
+        i=i, gap=ss(nxtping-lstping), avg=ss((0.0 + time.time() - start) / i),
+        tot=ss(0.0 + time.time() - start))
+    print(annotime(s, nxtping, 72))
+
+    lstping = nxtping
+    nxtping = nextping(nxtping)
+    i += 1
+
+
 ## Invoke popup for this ping plus additional popups if there were more pings
 ## while answering this one.
-#sub pingery {
-#  # TODO: move everything from launch.pl to here
-#  return 0;
-#}
-#
-##SCHDEL (scheduled for deletion):
-##check if X11 is already running, and if not, start it
-##$X11= '/Applications/Utilities/X11.app/Contents/MacOS/X11 &';
-##if (-e $X11) {
-##	$filename='/tmp/.X0-lock';
-##	my $xorg=`ps -A|grep -c 'X11.app'`;
-##	print $xorg;
-##	#unless (-e $filename || $xorg>1) {
-##	unless ($xorg>2) {
-##		`$X11`
-##	}
-##}
+def pingery():
+    # TODO: move everything from launch.py to here
+    return 0
+
+
 #
 #__DATA__
 #This section exists to make it trivial to implement the -l (lock)
