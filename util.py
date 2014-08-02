@@ -1,8 +1,7 @@
 # Utility functions for tagtime.
 # This uses settings from ~/.tagtimerc so that must have been loaded first. # XXX
 
-import settings # XXX tagtime settings
-
+import datetime
 import math
 import re
 import subprocess
@@ -11,10 +10,14 @@ import sys
 def clip(x, a, b):
     return max(a, min(b, x))
 
+def callcmd(cmd):
+    if subprocess.call(cmd) != 0:
+        print('SYSERR:', cmd, file=sys.stderr)
+
 
 class Random:
 
-    def __init__(self, gap, seed=666):
+    def __init__(self, gap, seed):
         self.IA = 16807      # constant used for RNG
                              # (see p37 of Simulation by Ross)
         self.IM = 2147483647 # constant used for RNG (2^31-1)
@@ -50,7 +53,7 @@ class Random:
             after calling prevping.
         '''
         # XXX round1
-        return max(prev + 1, round1(prev + self.exprand()))
+        return max(prev + 1, round(prev + self.exprand()))
 
     def prevping(self, t):
         '''Computes the last scheduled ping time before time t.'''
@@ -58,8 +61,10 @@ class Random:
         # Starting at the beginning of time, walk forward computing
         # next pings until the next ping is >= t.
         nxtping = 1184083200  # the birth of timepie/tagtime!
+        # import time
+        # nxtping = time.time() - 1000 # XXX debugging
         lstping = nxtping
-        lstseed = seed
+        lstseed = self.seed
         while nxtping < t:
             lstping = nxtping
             lstseed = self.seed # XXX this is an ugly way to handle state
@@ -209,15 +214,17 @@ def lockb():
         #    }
 
 
-def lockn():
-    '''Nonblocking lock -- try to get the lock and return 0 if we can't.'''
-    if settings.cygwin:  # stupid windows
-        if os.path.exists(lockf): return False
-        cmd = ["/usr/bin/touch", lockf]
-        if subprocess.call(cmd) != 0:
-            print("SYSERR:", cmd, file=sys.stderr)
-    else:
-        pass
+# def lockn():
+#     '''Nonblocking lock -- try to get the lock and return 0 if we can't.'''
+#     if settings.cygwin:  # stupid windows
+#         if os.path.exists(lockf): return False
+#         cmd = ["/usr/bin/touch", lockf]
+#         if subprocess.call(cmd) != 0:
+#             print("SYSERR:", cmd, file=sys.stderr)
+#     else:
+#         pass
+
+
 #sub lockn {
 #  if($cygwin) {  # stupid windows
 #    if(-e $lockf) { return 0; }
@@ -313,7 +320,7 @@ class Logger:
         self.linelen = linelen
 
     def log(self, s):
-        '''append a string to the log file ($logf defined in settings file)'''
+        '''append a string to the log file'''
         with open(self.logf, 'a') as f:
             f.write(s)
     slog = log # original name
@@ -345,11 +352,6 @@ def isnum(x):
     '''Whether the argument is a valid real number.'''
     return re.search(r'^\s*(\+|\-)?(\d+\.?\d*|\d*\.?\d+)\s*$', x)
 
-## round to nearest integer.
-#sub round1 { my($x) = @_; return int($x + .5 * ($x <=> 0)); }
-#
-#
-#
 ## DATE/TIME FUNCTIONS FOLLOW
 #
 ## Date/time: Takes unixtime in seconds and returns list of
