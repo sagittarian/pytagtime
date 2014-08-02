@@ -66,35 +66,35 @@
 #
 # XXX locking
 
+import datetime
 import os
+import subprocess
 import sys
 import time
 
 from settings import settings
 
-def callcmd(cmd):
-    if subprocess.call(cmd) != 0:
-        print('SYSERR:', cmd, file=sys.stderr)
-
 launchtime = time.time()
 
 import util
-from util import *
 
-lstping = util.prevping(launchtime)
-nxtping = util.nextping(lstping)
+rand = settings.rand
+
+lstping = rand.prevping(launchtime)
+nxtping = rand.nextping(lstping)
 
 
 # XXX locking
 #if($cygwin) { unlock(); }  # on cygwin may have stray lock files around.
 #
 #$cmd = "${path}launch.pl";        # Catch up on any old pings.
-cmd = os.path.join(path, 'launch.py')
+cmd = os.path.join(settings.path, 'launch.py')
 if subprocess.call(cmd) != 0:
     print('SYSERR:', cmd, file=sys.stderr)
 
+tdelta = datetime.timedelta(seconds=time.time()-lstping)
 print("TagTime is watching you! Last ping would've been",
-      ss(time.time()-lstping), "ago.", file=sys.stderr)
+      tdelta, "ago.", file=sys.stderr)
 
 start = time.time()
 i = 1
@@ -102,28 +102,30 @@ i = 1
 while True:
     # sleep till next ping but check again in at most a few seconds in
     # case computer was off (should be event-based and check upon wake).
-    time.sleep(clip(nxtping - time.time(), 0, 2));
+    time.sleep(util.clip(nxtping - time.time(), 0, 2));
     now = time.time()
 
     if nxtping <= now:
-        if catchup or nxtping > now - retrothresh:
-            if not playsound:
+        if settings.catchup or nxtping > now - settings.retrothresh:
+            if settings.playsound is None:
                 print('\a', file=sys.stderr)
             else:
-                callcmd(playsound)
+                util.callcmd(settings.playsound)
 
-    # invokes popup for this ping plus additional popups if there were more
-    #   pings while answering this one:
-    cmd = [os.path.join(path, 'launch.py'), 'quiet', '&'];
-    callcmd(cmd)
-    s = '{i: 4}: PING! gap {gap} avg {avg} tot {tot}'.format(
-        i=i, gap=ss(nxtping-lstping), avg=ss((0.0 + time.time() - start) / i),
-        tot=ss(0.0 + time.time() - start))
-    print(annotime(s, nxtping, 72))
+        # invokes popup for this ping plus additional popups if there were more
+        #   pings while answering this one:
+        cmd = [os.path.join(settings.path, 'launch.py'), 'quiet', '&'];
+        util.callcmd(cmd)
+        s = '{i: 4}: PING! gap {gap} avg {avg} tot {tot}'.format(
+            i=i,
+            gap=datetime.timedelta(seconds=nxtping-lstping),
+            avg=datetime.timedelta(seconds=(0.0 + time.time() - start) / i),
+            tot=datetime.timedelta(seconds=(0.0 + time.time() - start)))
+        print(util.annotime(s, nxtping, 72))
 
-    lstping = nxtping
-    nxtping = nextping(nxtping)
-    i += 1
+        lstping = nxtping
+        nxtping = rand.nextping(nxtping)
+        i += 1
 
 
 ## Invoke popup for this ping plus additional popups if there were more pings
