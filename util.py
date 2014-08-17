@@ -271,8 +271,10 @@ def splur(n, noun):
 def divider(label):
     '''Takes a string "foo" and returns "-----foo-----" of length $linelen.'''
     n = len(label)
-    # XXX
-#
+    left = (settings.linelen - n) // 2
+    right = settings.linelen - left - n
+    return ('-' * left) + label + ('-' * right)
+
 ## Takes 2 strings and returns them concatenated with enough space in the middle
 ## so the whole string is $x long (default: $linelen).
 #sub lrjust { my($a, $b, $x) = @_;
