@@ -86,6 +86,11 @@ class Settings:
         return result
 
     @property
+    def playsound(self):
+        return (shlex.split(self._dict['playsound'])
+                if 'playsound' in self._dict else None)
+
+    @property
     def edit_cmd(self):
         if 'edit_cmd' in self._dict:
             return shlex.split(self._dict['edit_cmd'])

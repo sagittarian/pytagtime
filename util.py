@@ -281,7 +281,7 @@ def divider(label):
 #}
 #
 
-def annotime(a, t, ll):
+def annotime(a, t, ll=72):
     '''Annotates a line of text with the given timestamp.'''
     # XXX make it the same
     ts = datetime.datetime.fromtimestamp(t).isoformat()

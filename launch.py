@@ -29,6 +29,23 @@ def editor(f, t):
     cmd = settings.get_edit_cmd(f, t)
     util.callcmd(cmd)
 
+# Launch the tagtime pinger for the given time (in unix time).
+def launch(t):
+    lt = time.localtime(t)
+    hour, min, sec = (util.dd(i) for i in lt[3:6]) # XXX ugly constants
+    #os.environ['DISPLAY'] = ':0.0' # have to set this explicitly if
+                                    # invoked by cron.
+    if not settings.quiet and settings.playsound is not None:
+        if not settings.playsound:
+            print('\a', file=sys.stderr)
+        else:
+            util.callcmd(settings.playsound)
+    pingpath = os.path.join(settings.path, 'ping.py')
+    cmd = settings.get_xt_cmd(
+        'TagTime {hour}:{min}:{sec}'.format(hour=hour, min=min, sec=sec),
+        pingpath, str(t))
+    util.callcmd(cmd)
+
 if test: # just pop up the editor and exit; mainly for testing.
     editor(settings.logf, "TagTime Log Editor (invoked explicitly with \"test\" arg)")
     sys.exit(0)
@@ -127,25 +144,6 @@ def lastln():
     if m:
         return m.groups()
     return None, None
-
-# Launch the tagtime pinger for the given time (in unix time).
-def launch(t):
-    lt = time.localtime(t)
-    hour, min, sec = (dd(i) for i in lt[3:6]) # XXX ugly constants
-    #os.environ['DISPLAY'] = ':0.0' # have to set this explicitly if
-                                    # invoked by cron.
-    if not settings.quiet and settings.playsound is not None:
-        if not settings.playsound:
-            print('\a', file=sys.stderr)
-        else:
-            util.callcmd(settings.playsound)
-    pingpath = os.path.join(settings.path, 'ping.py')
-    cmd = settings.get_xt_cmd(
-        'TagTime {hour}:{min}:{sec}'.format(hour=hour, min=min, sec=sec),
-        pingpath, t)
-    util.callcmd(cmd)
-
-
 
 ## SCHDEL (SCHEDULED FOR DELETION): (discussion and code for artificial gaps)
 ## It can happen that 2 pings can both occur since we last checked (a minute
