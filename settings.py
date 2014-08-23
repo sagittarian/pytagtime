@@ -21,7 +21,7 @@ DEFAULTS = {
     # added.)
     'retrothresh': 60,
 
-    'gap': 30,#45*60,     # Average number of seconds between pings
+    'gap': 45*60,     # Average number of seconds between pings
                       # (eg, 60*60 = 1 hour).
 
     'seed': 666,      # For pings not in sync with others,
@@ -70,7 +70,7 @@ class Settings:
 
         path = os.path.abspath(os.path.dirname(__file__))
         xt = subprocess.getoutput('which xterm')
-        ed = subprocess.getoutput('which emacs')
+        ed = subprocess.getoutput('which nano')
 
         namespace.update(path=path, xt=xt, ed=ed)
 
@@ -95,7 +95,7 @@ class Settings:
         if 'edit_cmd' in self._dict:
             return shlex.split(self._dict['edit_cmd'])
 
-        return self.get_xt_cmd('{t}', self.ed, '{f}')
+        return self.get_xt_cmd('{t}', *(self.ed + ['{f}']))
 
     @default_property
     def logf(self):
@@ -111,6 +111,7 @@ class Settings:
 
         self.rand = util.Random(gap=self.gap, seed=self.seed)
         self.logger = util.Logger(logf=self.logf, linelen=self.linelen)
+        self.ed = shlex.split(self._dict['ed'])
 
     def __getattr__(self, key):
         if key and key[0] != '_' and key in self._dict:

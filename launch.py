@@ -6,21 +6,21 @@ and/or launch ping.py for the current ping.
 This should be called by the daemon (tagtimed.py) every time a ping is due.
 '''
 
-print('launch.py')
-
 import datetime
 import subprocess
 import time
-launchtime = time.time();
 
 from settings import settings
 import util
 
 import os
 import sys
+import re
+
 test = 'test' in sys.argv
 quiet = 'quiet' in sys.argv
 
+launchtime = time.time()
 
 def editor(f, t):
     '''Launch an editor to edit file f, labeling the window with title t.'''
@@ -46,6 +46,18 @@ def launch(t):
         pingpath, str(t))
     util.callcmd(cmd)
 
+def lastln():
+    '''Returns the last line in the log but as a 2-element array
+    consisting of timestamp and rest of the line.'''
+    x = None
+    with open(logf) as f:
+        for x in f:
+            pass
+    m = re.search(r'^\s*(\d+)\s*(.*)$', x)
+    if m:
+        return m.groups()
+    return None, None
+
 if test: # just pop up the editor and exit; mainly for testing.
     editor(settings.logf, "TagTime Log Editor (invoked explicitly with \"test\" arg)")
     sys.exit(0)
@@ -55,11 +67,11 @@ logger = settings.logger
 
 # figure out the next ping after the last one that's in the log file
 if os.path.exists(settings.logf):
-    lll = subprocess.getoutput(['tail', '-1', settings.logf]) # last log line
+    lll = subprocess.check_output(['tail', '-1', settings.logf]) # last log line
     # parse out the timestamp for the last line, which better
     # be equal to nextping@prevping of itself.
-    m = re.search(r'^\s*(\d+)', lll)
-    lstping = m.group(1) if m is not None else None
+    m = re.search(br'^\s*(\d+)', lll)
+    lstping = int(m.group(1)) if m is not None else 0
 
     tmp = rand.nextping(rand.prevping(lstping))
     # NB: must call prevping before nextping
@@ -84,8 +96,8 @@ editorflag = False
 # First, if we missed any pings by more than $retrothresh seconds for no
 # apparent reason, then assume the computer was off and auto-log them.
 while nxtping < launchtime - settings.retrothresh:
-    line = "{nxtping} afk off RETRO\n".format(nxtping=nxtping)
-    logger.log(util.annotime(line))
+    line = "{nxtping} afk off RETRO".format(nxtping=nxtping)
+    logger.log(util.annotime(line, nxtping))
     nxtping = rand.nextping(nxtping)
     editorflag = True
 
@@ -123,7 +135,7 @@ while True:
         nxtping = nextping(nxtping)
         # Here's where we would add an artificial gap of $nxtping-$lstping.
     if editorflag:
-        editor(logf, "TagTime Log Editor (fill in your RETRO pings)")
+        editor(settings.logf, "TagTime Log Editor (fill in your RETRO pings)")
         # when editor finishes there may be new pings missed!
         # that's why we have the outer do-while loop here, to start over if
         #   there are new pings in the past after we finish editing.
@@ -132,18 +144,6 @@ while True:
 
 # XXX locking
 # unlock();
-
-def lastln():
-    '''Returns the last line in the log but as a 2-element array
-    consisting of timestamp and rest of the line.'''
-    x = None
-    with open(logf) as f:
-        for x in f:
-            pass
-    m = re.search(r'^\s*(\d+)\s*(.*)$', x)
-    if m:
-        return m.groups()
-    return None, None
 
 ## SCHDEL (SCHEDULED FOR DELETION): (discussion and code for artificial gaps)
 ## It can happen that 2 pings can both occur since we last checked (a minute
