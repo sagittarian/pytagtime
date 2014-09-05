@@ -6,6 +6,9 @@ import math
 import re
 import subprocess
 import sys
+import time
+
+linelen = 79 # XXX put this in settings
 
 def clip(x, a, b):
     return max(a, min(b, x))
@@ -255,65 +258,45 @@ def splur(n, noun):
     return '{n} {noun}{end}'.format(
         n=n, noun=noun, end='' if n == 1 else 's')
 
-
-## Trim whitespace from front and back of string s.
-#sub trim { my($s) = @_;  $s =~ s/^\s+//;  $s =~ s/\s+$//;  return $s; }
-
-
-##
-#sub divider { my($label) = @_;
-#  #if(!defined($linelen)) { $linelen = 79; }
-#  my $n = length($label);
-#  my $left = int(($linelen - $n)/2);
-#  my $rt = $linelen - $left - $n;
-#  return ("-"x$left).$label.("-"x$rt);
-#}
-def divider(label):
+def divider(label, ll=linelen):
     '''Takes a string "foo" and returns "-----foo-----" of length $linelen.'''
     n = len(label)
-    left = (settings.linelen - n) // 2
-    right = settings.linelen - left - n
+    left = (ll - n) // 2
+    right = ll - left - n
     return ('-' * left) + label + ('-' * right)
 
-## Takes 2 strings and returns them concatenated with enough space in the middle
-## so the whole string is $x long (default: $linelen).
-#sub lrjust { my($a, $b, $x) = @_;
-#  $x = $linelen unless defined($x);
-#  "$a " . " "x(max(0,$x-length("$a $b"))) . $b;
-#}
-#
+def lrjust(a, b, x=linelen):
+    '''Takes 2 strings and returns them concatenated with enough space in
+    the middle so the whole string is x long (default: linelen).'''
+    return '{a}{spaces}{b}'.format(
+        a=a, spaces=' ' * max(0, x - len(a) - len(b)), b=b)
 
-def annotime(a, t, ll=72):
+def annotime(a, t, ll=linelen):
     '''Annotates a line of text with the given timestamp.'''
-    # XXX make it the same
-    ts = datetime.datetime.fromtimestamp(t).isoformat()
-    return '{} {}'.format(a, ts)
-    #sub annotime {                 # NB: this does not include a newline.
-    #  my($a, $t, $ll) = @_;
-    #  $ll = $linelen unless defined($ll);
-    #  my($yea,$o,$d,$h,$m,$s,$wd) = dt($t);
-    #  my @candidates = (
-    #    #"[$yea.$o.$d $h:$m:$s $wd; r=".round1(time()-$t)."]",
-    #    "[$yea.$o.$d $h:$m:$s $wd]",    # 24 chars
-    #    "[$o.$d $h:$m:$s $wd]",         # 18 chars
-    #    "[$d $h:$m:$s $wd]",            # 15 chars
-    #    "[$o.$d $h:$m:$s]",             # 14 chars
-    #    "[$h:$m:$s $wd]",               # 12 chars
-    #    "[$o.$d $h:$m]",                # 11 chars
-    #    "[$d $h:$m:$s]",                # also 11 so this will never get chosen
-    #    "[$h:$m $wd]",                  #  9 chars
-    #    "[$h:$m:$s]",                   #  8 chars
-    #    "[$d $h:$m]",                   # also 8 so this will never get chosen
-    #    "[$h:$m]",                      #  5 chars
-    #    "[$m]"                          #  2 chars
-    #  );
-    #  for(@candidates) {
-    #    if(length("$a $_") <= $ll) {
-    #      return lrjust($a, $_, $ll-0*24);
-    #    }
-    #  }
-    #  return $a;
-    #}
+    tt = datetime.datetime.fromtimestamp(t).timetuple()
+    candidates = [
+       "[%Y-%m-%d %H:%M:%S %a]",   # 24 chars
+       "[%m.%d %H:%M:%S %a]",      # 18 chars
+       "[%d %H:%M:%S %a]",         # 15 chars
+       "[%m.%d %H:%M:%S]",         # 14 chars
+       "[%H:%M:%S %a]",            # 12 chars
+       "[%m.%d %H:%M]",            # 11 chars
+       "[%d %H:%M:%S]",            # also 11 so this will never get chosen
+       "[%H:%M %a]",               #  9 chars
+       "[%H:%M:%S]",               #  8 chars
+       "[%d %H:%M]",               # also 8 so this will never get chosen
+       "[%H:%M]",                  #  5 chars
+       "[%M]"                      #  2 chars
+    ]
+
+    maxlen = linelen - len(a) - 1
+
+    for candidate_format in candidates:
+        candidate = time.strftime(candidate_format, tt)
+        if len(candidate) + len(a) + 1 <= ll:
+            return lrjust(a, candidate, ll)
+    return a
+
 
 class Logger:
 
@@ -329,6 +312,7 @@ class Logger:
             f.write(s)
     slog = log # original name
 
+
 def dd(n):
     '''double-digit: takes number from 0-99,
     returns 2-char string eg "03" or "42".'''
@@ -336,13 +320,12 @@ def dd(n):
 
 
 
-## pad left: returns string x but with p's prepended so it has width w
-#sub padl {
-#  my($x,$p,$w) = @_;
-#  if(length($x) >= $w) { return substr($x,0,$w); }
-#  return $p x ($w-length($x)) . $x;
-#}
-#
+def padl(x, p, w):
+    '''pad left: returns string x but with p's prepended so it has width w'''
+    if len(x) >= w:
+        return x[:len(w)]
+    return p * (w - len(x)) + x
+
 ## pad right: returns string x but with p's appended so it has width w
 #sub padr {
 #  my($x,$p,$w) = @_;
