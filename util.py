@@ -415,29 +415,33 @@ def isnum(x):
 #  return ($1 eq '-' ? -1 : 1) * ($2*24*3600+$3*3600+$4*60+$5);
 #}
 #
-## Parse Date: must be in year, month, day, hour, min, sec order, returns
-##   unixtime.
-#sub pd { my($s) = @_;
-#  my($year, $month, $day, $hour, $minute, $second);
-#
-#  if($s =~ m{^\s*(\d{1,4})\W*0*(\d{1,2})\W*0*(\d{1,2})\W*0*
-#                 (\d{0,2})\W*0*(\d{0,2})\W*0*(\d{0,2})\s*.*$}x) {
-#    $year = $1;  $month = $2;   $day = $3;
-#    $hour = $4;  $minute = $5;  $second = $6;
-#    $hour |= 0;  $minute |= 0;  $second |= 0;  # defaults.
-#    $year = ($year<100 ? ($year<70 ? 2000+$year : 1900+$year) : $year);
-#  }
-#  else {
-#    ($year,$month,$day,$hour,$minute,$second) =
-#      (1969,12,31,23,59,59); # indicates couldn't parse it.
-#  }
-#
-#  return timelocal($second,$minute,$hour,$day,$month-1,$year);
-#}
-#
-#1;  # perl wants this for libraries imported with 'require'.
-#
-#
+def pd(*s):
+    '''Parse Date: must be in year, month, day, hour, min, sec order,
+    returns unixtime.'''
+    #  my($year, $month, $day, $hour, $minute, $second);
+    m = re.search(
+        '''^\s*(\d{1,4})\W*0*(\d{1,2})\W*0*(\d{1,2})\W*0*
+        (\d{0,2})\W*0*(\d{0,2})\W*0*(\d{0,2})\s*.*$''', s, re.VERBOSE)
+    if m:
+        year = int(m.group(1)) if m.group(1) else 0
+        month = int(m.group(2)) if m.group(2) else 0
+        day = int(m.group(3)) if m.group(3) else 0
+        hour = int(m.group(4)) if m.group(4) else 0
+        minute = int(m.group(5)) if m.group(5) else 0
+        second = int(m.group(6)) if m.group(6) else 0
+        if year < 100:
+            if year < 70:
+                year = 2000 + year
+            else:
+                year = 1900 + year
+    else:
+        year, month, day, hour, minute, second = 1969, 12, 31, 23, 59, 59
+        # indicates couldn't parse it.
+
+    tm = (year, month, day, hour, minute, second, 0, 0, -1)
+    return time.mktime(tm)
+
+
 ## SCRATCH AREA:
 #
 ## Implementation of ran0 in C, from numerical recipes:
