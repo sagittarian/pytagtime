@@ -11,8 +11,10 @@ import util
 import beemapi
 
 import os.path
+from pprint import pprint, pformat
 import re
 import sys
+import time
 
 # use Data::Dumper; $Data::Dumper::Terse = 1;
 # $| = 1; # autoflush
@@ -82,31 +84,32 @@ def main():
                       \])?            # end bracket for "[bID:abc123]"
                     \s*\"
                 ''', line, re.VERBOSE)
-            y, m, d, v, p, c, b = m.groups()
-            ts = '{}-{}-{}'.format(y, m, d)
+                # XXX if not m set an error flag and continue
+                y, m, d, v, p, c, b = m.groups()
+                ts = '{}-{}-{}'.format(y, m, d)
 
-            ph0[ts] = p
-            #$ph0{$ts} = $p;
-            #$c =~ s/\s+$//;
-            m = re.match(r'\s+$/', c)
-            sh0[ts] = c
-            bh[ts] = b
-            t = time.mktime((y, m, d, 0, 0, 0, 0, 0, -1))
-            if t < start:
-                start = t
-            if t > end:
-                end = t
-            if not b:
-                bflag = True
-                bf2 += 1
-                if bf2 == 1:
-                    print("Problem with this line in cache file:\n{}".format(line))
-                elif bf2 == 2:
-                    print("Additional problems with cache file, which is expected if this "
-                          "is your first time updating TagTime with the new Bmndr API.\n")
-            if remember.get(ts):
-                bflag = bf3 = True
-            remember[ts] = True;
+                ph0[ts] = p
+                #$ph0{$ts} = $p;
+                #$c =~ s/\s+$//;
+                m = re.match(r'\s+$/', c)
+                sh0[ts] = c
+                bh[ts] = b
+                t = time.mktime((y, m, d, 0, 0, 0, 0, 0, -1))
+                if t < start:
+                    start = t
+                if t > end:
+                    end = t
+                if not b:
+                    bflag = True
+                    bf2 += 1
+                    if bf2 == 1:
+                        print("Problem with this line in cache file:\n{}".format(line))
+                    elif bf2 == 2:
+                        print("Additional problems with cache file, which is expected if this "
+                              "is your first time updating TagTime with the new Bmndr API.\n")
+                if remember.get(ts):
+                    bflag = bf3 = True
+                remember[ts] = True;
     except IOError:
         bflag = True
         bf4 = True
@@ -120,46 +123,66 @@ def main():
         end   = 0            # calculated them from the cache file we
                              # decided to toss.
 
-  #my $tmp = $beef;  $tmp =~ s/(?:[^\/]*\/)*//; # strip path from filename
-  tmp = os.path.basename(beef)
-  if bf1:
-      print("Cache file missing or empty ($tmp); recreating... ")
-  elif bf2:
-    print("Cache file doesn't have all the Bmndr IDs; recreating... ")
-  elif bf3:
-    print("Cache file has duplicate Bmndr IDs; recreating... ")
-  elif bf4:
-    print("Couldn't read cache file; recreating... ")
-  else:   # this case is impossible
-    print("Recreating Beeminder cache ($tmp)[$bf1$bf2$bf3$bf4]... ")
+        #my $tmp = $beef;  $tmp =~ s/(?:[^\/]*\/)*//; # strip path from filename
+        tmp = os.path.basename(beef)
+        if bf1:
+                print("Cache file missing or empty ($tmp); recreating... ")
+        elif bf2:
+                print("Cache file doesn't have all the Bmndr IDs; recreating... ")
+        elif bf3:
+                print("Cache file has duplicate Bmndr IDs; recreating... ")
+        elif bf4:
+                print("Couldn't read cache file; recreating... ")
+        else:   # this case is impossible
+                print("Recreating Beeminder cache ($tmp)[$bf1$bf2$bf3$bf4]... ")
 
-  data = beemfetch(usr, slug)
-  print("[Bmndr data fetched]\n")
+        data = beemfetch(usr, slug)
+        print("[Bmndr data fetched]\n")
 
-  # take one pass to delete any duplicates on bmndr; must be one datapt per day
-  i = 0;
-  remember = None
-  # my @todelete;
+        # take one pass to delete any duplicates on bmndr; must be one datapt per day
+        i = 0;
+        remember = None
+        # my @todelete;
+        for x in data:
+	        tm = time.localtime(x["timestamp"]);
+	        y, m, d = tm.tm_year, tm.tm_mon, tm.tm_mday
+	        ts = time.strftime('%Y-%m-%d', x['timestamp'])
+	        b = x['id']
+	        if remember.get(ts) is not None:
+		        print("Beeminder has multiple datapoints for the same day. "
+		              "The other id is {}. Deleting this one:".format(remember[ts]))
+		        pprint(x)
+		        beemdelete(usr, slug, b);
+		        todelete.append(i)
+		        remember[ts] = b;
+		        i += 1
+
+        # for my $x (reverse(@todelete)) {
+        #   splice(@$data,$x,1);
+        # }
+
+        for x in data:   # parse the bmndr data into %ph0, %sh0, %bh
+	        y, m, d, *rest = time.localtime(x['timestamp'])
+	        ts = time.strftime('%Y-%m-%d', x['timestamp'])
+	        t = util.pd(ts)  # XXX isn't x['timestamp'] the unix time anyway already
+	        if t < start:
+		        start = t
+            if t > end:
+                end = t
+            v = x['value']
+            c = x['comment']
+            b = x['id']
+            i = re.search(r'^\d+', c)
+            ph0[ts] = int(i.group(0) if i else 0) # ping count is first thing in the comment
+            sh0[ts] = re.sub(r'[^\:]*\:\s+', '', c) # drop the "n pings:" comment prefix
+            # This really shouldn't happen.
+            if ts in bh:
+	            raise ValueError(
+		            "Duplicate cached/fetched id datapoints for {ts}: {bhts}, {b}.\n{val}".format(
+			            ts=ts, bhts=bh[ts], b=b, val=pformat(x))
+		    bh[ts] = b
+
   for my $x (@$data) {
-    my($y,$m,$d) = dt($x->{"timestamp"});
-    my $ts = "$y-$m-$d";
-    my $b = $x->{"id"};
-    if(defined($remember{$ts})) {
-      print "Beeminder has multiple datapoints for the same day. " ,
-            "The other id is $remember{$ts}. Deleting this one:\n";
-      print Dumper $x;
-      beemdelete($usr, $slug, $b);
-      push(@todelete,$i);
-    }
-    $remember{$ts} = $b;
-    $i++;
-  }
-
-  for my $x (reverse(@todelete)) {
-    splice(@$data,$x,1);
-  }
-
-  for my $x (@$data) { # parse the bmndr data into %ph0, %sh0, %bh
     my($y,$m,$d) = dt($x->{"timestamp"});
     my $ts = "$y-$m-$d";
     my $t = pd($ts);
