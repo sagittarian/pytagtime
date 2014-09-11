@@ -343,6 +343,7 @@ def isnum(x):
 #
 ## Date/time: Takes unixtime in seconds and returns list of
 ##   year, mon, day, hr, min, sec, day-of-week, day-of-year, is-daylight-time
+## In python this is going to translate to time.localtime()
 #sub dt { my($t) = @_;
 #  $t = time unless defined($t);
 #  my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($t);
@@ -415,7 +416,7 @@ def isnum(x):
 #  return ($1 eq '-' ? -1 : 1) * ($2*24*3600+$3*3600+$4*60+$5);
 #}
 #
-def pd(*s):
+def pd(s):
     '''Parse Date: must be in year, month, day, hour, min, sec order,
     returns unixtime.'''
     #  my($year, $month, $day, $hour, $minute, $second);
