@@ -181,42 +181,26 @@ def main():
 		            "Duplicate cached/fetched id datapoints for {ts}: {bhts}, {b}.\n{val}".format(
 			            ts=ts, bhts=bh[ts], b=b, val=pformat(x))
 		    bh[ts] = b
+    with open(ttlf) as T:
+        np = 0 # number of lines (pings) in the tagtime log that match
+        for line in T: # parse the tagtime log file
+            m = re.search(r'^(\d+)\s*(.*)$', line)
+            if not m:
+                raise ValueError("Bad line in TagTime log: " + line)
+            t = m.group(1)  # timestamp as parsed from the tagtime log
+            stuff = m.group(2)  # tags and comments for this line of the log
+            tags = strip(stuff)
+        if tagmatch(tags, crit):
+            y, m, d, *rest = time.localtime(t)
+            ph1["$y-$m-$d"] += 1
+            sh1["$y-$m-$d"] += stripb($stuff) + ", "
+            np += 1
+            if t < start:
+                start = t
+            if t > end:
+                end = t
 
-  for my $x (@$data) {
-    my($y,$m,$d) = dt($x->{"timestamp"});
-    my $ts = "$y-$m-$d";
-    my $t = pd($ts);
-    $start = $t if $t < $start;
-    $end   = $t if $t > $end;
-    my $v = $x->{"value"};
-    my $c = $x->{"comment"};
-    my $b = $x->{"id"};
-    $ph0{$ts} = 0+$c; # ping count is first thing in the comment
-    $sh0{$ts} = $c;
-    $sh0{$ts} =~ s/[^\:]*\:\s+//; # drop the "n pings:" comment prefix
-    # This really shouldn't happen.
-    if(defined($bh{$ts})) { die "Duplicate cached/fetched id datapoints for $y-$m-$d: $bh{$ts}, $b.\n", Dumper $x, "\n"; }
-    $bh{$ts} = $b;
-  }
-}
 
-open(T, $ttlf) or die "Can't open TagTime log file: $ttlf\n";
-$np = 0; # number of lines (pings) in the tagtime log that match
-while(<T>) { # parse the tagtime log file
-  if(!/^(\d+)\s*(.*)$/) { die "Bad line in TagTime log: $_"; }
-  my $t = $1;     # timestamp as parsed from the tagtime log
-  my $stuff = $2; # tags and comments for this line of the log
-  my $tags = strip($stuff);
-  if(tagmatch($tags, $crit)) {
-    my($y,$m,$d) = dt($t);
-    $ph1{"$y-$m-$d"} += 1;
-    $sh1{"$y-$m-$d"} .= stripb($stuff) . ", ";
-    $np++;
-    $start = $t if $t < $start;
-    $end   = $t if $t > $end;
-  }
-}
-close(T);
 # clean up $sh1: trim trailing commas, pipes, and whitespace
 for(sort(keys(%sh1))) { $sh1{$_} =~ s/\s*(\||\,)\s*$//; }
 
