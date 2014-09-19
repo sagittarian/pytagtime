@@ -201,63 +201,66 @@ def main():
                 end = t
 
 
-# clean up $sh1: trim trailing commas, pipes, and whitespace
-for(sort(keys(%sh1))) { $sh1{$_} =~ s/\s*(\||\,)\s*$//; }
+    # clean up $sh1: trim trailing commas, pipes, and whitespace
+    # for(sort(keys(%sh1))) { $sh1{$_} =~ s/\s*(\||\,)\s*$//; }
+    for key in sorted(keys(sh1)):
+        sh1[key] = re.sub(r'\s*(\||\,)\s*$', '', sh1[key])
 
-#print "Processing datapoints in: ", ts($start), " - ", ts($end), "\n";
 
-my $nquo = 0;  # number of datapoints on beeminder with no changes (status quo)
-my $ndel = 0;  # number of deleted datapoints on beeminder
-my $nadd = 0;  # number of created datapoints on beeminder
-my $nchg = 0;  # number of updated datapoints on beeminder
-my $minus = 0; # total number of pings decreased from what's on beeminder
-my $plus = 0;  # total number of pings increased from what's on beeminder
-my $ii = 0;
-for(my $t = daysnap($start)-86400; $t <= daysnap($end)+86400; $t += 86400) {
-  my($y,$m,$d) = dt($t);
-  my $ts = "$y-$m-$d";
-  my $b =  $bh{$ts} || "";
-  my $p0 = $ph0{$ts} || 0;
-  my $p1 = $ph1{$ts} || 0;
-  my $s0 = $sh0{$ts} || "";
-  my $s1 = $sh1{$ts} || "";
-  if($p0 eq $p1 && $s0 eq $s1) { # no change to the datapoint on this day
-    $nquo++ if $b;
-    next;
-  }
-  if($b eq "" && $p1 > 0) { # no such datapoint on beeminder: CREATE
-    $nadd++;
-    $plus += $p1;
-    $bh{$ts} = beemcreate($usr,$slug,$t, $p1*$ping, splur($p1,"ping").": ".$s1);
-    #print "Created: $y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
-  } elsif($p0 > 0 && $p1 <= 0) { # on beeminder but not in tagtime log: DELETE
-    $ndel++;
-    $minus += $p0;
-    beemdelete($usr, $slug, $b);
-    #print "Deleted: $y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\"\n";
-  } elsif($p0 != $p1 || $s0 ne $s1) { # bmndr & tagtime log differ: UPDATE
-    $nchg++;
-    if   ($p1 > $p0) { $plus  += ($p1-$p0); }
-    elsif($p1 < $p0) { $minus += ($p0-$p1); }
-    beemupdate($usr, $slug, $b, $t, ($p1*$ping), splur($p1,"ping").": ".$s1);
-    # If this fails, it may well be because the point being updated was deleted/
-    # replaced on another machine (possibly as the result of a merge) and is no
-    # longer on the server. In which case we should probably fail gracefully
-    # rather than failing with an ERROR (see beemupdate()) and not fixing
-    # the problem, which requires manual cache-deleting intervention.
-    # Restarting the script after deleting the offending cache is one option,
-    # though simply deleting the cache file and waiting for next time is less
-    # Intrusive. Deleting the cache files when merging two TT logs would reduce
-    # the scope for this somewhat.
-    #print "Updated:\n";
-    #print "$y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\" to:\n";
-    #print "$y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
-  } else {
-    print "ERROR: can't tell what to do with this datapoint (old/new):\n";
-    print "$y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\"\n";
-    print "$y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
-  }
-}
+   #print "Processing datapoints in: ", ts($start), " - ", ts($end), "\n";
+
+   nquo = 0  # number of datapoints on beeminder with no changes (status quo)
+   ndel = 0  # number of deleted datapoints on beeminder
+   nadd = 0  # number of created datapoints on beeminder
+   nchg = 0  # number of updated datapoints on beeminder
+   minus = 0 # total number of pings decreased from what's on beeminder
+   plus = 0  # total number of pings increased from what's on beeminder
+   ii = 0
+   for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
+        y, m, d, *rest = time.localtime(t)
+        ts = time.strftime('%Y-%m-%d', t)
+        b = bh.get(ts, "")
+        p0 = ph0.get(ts, "")
+        p1 = ph1.get(ts, 0)
+        s0 = sh0.get(ts, "")
+        s1 = sh1.get(ts, "")
+        if p0 == p1 and s0 == s1: # no change to the datapoint on this day
+            if b:
+                nquo += 1
+            continue
+        if b == "" and s1 > 0: # no such datapoint on beeminder: CREATE
+            nadd += 1
+            plus += p1
+            bh[ts] = beemcreate(usr, slug, t, p1 * ping, splur(p1, 'ping') + ': ' + s1)
+            #print "Created: $y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
+        elif p0 > 0 and p1 <= 0: # on beeminder but not in tagtime log: DELETE
+            ndel += 1
+            minus += p0
+            beemdelete(usr, slug, b)
+            #print "Deleted: $y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\"\n";
+        elif p0 != p1 or s0 != s1:  # bmndr & tagtime log differ: UPDATE
+            nchg += 1
+            if p1 > p0:
+                plus += p1 - p0
+            elif p1 < p0:
+                minus += p0 - p1
+            beemupdate(usr, slug, b, t, (p1*ping), splur(p1, 'ping') + ': ' + s1)
+            # If this fails, it may well be because the point being updated was deleted/
+            # replaced on another machine (possibly as the result of a merge) and is no
+            # longer on the server. In which case we should probably fail gracefully
+            # rather than failing with an ERROR (see beemupdate()) and not fixing
+            # the problem, which requires manual cache-deleting intervention.
+            # Restarting the script after deleting the offending cache is one option,
+            # though simply deleting the cache file and waiting for next time is less
+            # Intrusive. Deleting the cache files when merging two TT logs would reduce
+            # the scope for this somewhat.
+            #print "Updated:\n";
+            #print "$y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\" to:\n";
+            #print "$y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
+        else:
+            print("ERROR: can't tell what to do with this datapoint (old/new):\n")
+            print("$y $m $d  ", p0 * ping, " \"$p0 pings: $s0 [bID:$b]\"\n")
+            print("$y $m $d  ", p1 * ping," \"$p1 pings: $s1\"\n")
 
 open(F, ">$beef") or die;  # generate the new cache file
 for my $ts (sort(keys(%ph1))) {
