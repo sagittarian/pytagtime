@@ -18,10 +18,11 @@ import time
 
 # use Data::Dumper; $Data::Dumper::Terse = 1;
 # $| = 1; # autoflush
-ping = hours_per_ping = settings.gap / 3600
 
 def main():
-    if len(argv) != 2:
+    ping = hours_per_ping = settings.gap / 3600
+
+    if len(sys.argv) != 2:
     print("Usage: ./beeminder.py tagtimelog user/slug")
     sys.exit(1)
 
@@ -259,55 +260,68 @@ def main():
             #print "$y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
         else:
             print("ERROR: can't tell what to do with this datapoint (old/new):\n")
-            print("$y $m $d  ", p0 * ping, " \"$p0 pings: $s0 [bID:$b]\"\n")
-            print("$y $m $d  ", p1 * ping," \"$p1 pings: $s1\"\n")
+            print(ts, p0 * ping, " \"{p0} pings: {s0} [bID:{b}]\"".format(p0=p0, s0=s0, b=b))
+            print(ts, p1 * ping, " \"{p1} pings: {s1}\"\n".format(p1=p1, s1=s1))
+    with open(beef, 'a') as f: # generate the new cache file
+        for ts in sorted(ph1.keys()):
+            y, m, d = re.split(r'\-', ts)
+            p = ph1[ts]
+            v = p * ping
+            c = sh1[ts]
+            b = kh[ts]
+            out = '{y} {m} {d}  {v} "{pings}: {c} [bID:{b}]'.format(
+                y=y, m=m, d=d, v=v, pings=splur(p, "ping"), c=c, b=b)
+            f.write(out)
+    nd = len(keys(ph1))  # number of datapoints
+    if nd != nquo + nchg + nadd:  # sanity check
+        print "\nERROR: total != nquo+nchg+nadd ({nd} != {nquo}+{nchg}+{nadd})\n".format(
+            nd=nd, nquo=nquo, nchg=nchg, nadd=nadd)
 
-open(F, ">$beef") or die;  # generate the new cache file
-for my $ts (sort(keys(%ph1))) {
-  my($y,$m,$d) = split(/\-/, $ts);
-  my $p = $ph1{$ts};
-  my $v = $p*$ping;
-  my $c = $sh1{$ts};
-  my $b = $bh{$ts};
-  print F "$y $m $d  $v \"",splur($p,"ping"),": $c [bID:$b]\"\n";
-}
-close(F);
-
-my $nd = scalar(keys(%ph1)); # number of datapoints
-if($nd != $nquo+$nchg+$nadd) { # sanity check
-  print "\nERROR: total != nquo+nchg+nadd ($nd != $nquo+$nchg+$nadd)\n";
-}
-print "Datapts: $nd (~$nquo *$nchg +$nadd -$ndel), ",
-      "Pings: $np (+$plus -$minus) ";
-my $r = ref($crit);
-if   ($r eq "")       { print "w/ tag $crit";                        }
-elsif($r eq "ARRAY")  { print "w/ tags in {", join(",",@$crit), "}"; }
-elsif($r eq "Regexp") { print "matching $crit";                      }
-elsif($r eq "CODE")   { print "satisfying lambda";                   }
-else                  { print "(unknown-criterion: $crit)";          }
-print "\n";
-
-
-# Whether the given string of space-separated tags matches the given criterion.
-sub tagmatch { my($tags, $crit) = @_;
-  my $r = ref($crit);
-  if   ($r eq "")       { return $tags =~ /\b$crit\b/;                         }
-  elsif($r eq "ARRAY")  { for my $c (@$crit) { return 1 if $tags =~ /\b$c\b/; }}
-  elsif($r eq "CODE")   { return &$crit($tags);                                }
-  elsif($r eq "Regexp") { return $tags =~ $crit;                               }
-  else { die "Criterion $crit is neither string, array, regex, nor lambda!"; }
-  return 0;
-}
+    print("Datapts: {nd} (~{nquo} *{nchg} +{nadd} -{ndel}), ".format(
+        nd=nd, nquo=nquo, nchg=nchg, nadd=nadd, ndel=ndel),
+      "Pings: {np} (+{plus} -{minus}) ".format(np=np, plus=plus, minus=minus))
+    if isinstance(crit, str):
+        print("w/ tag", crit)
+    elif isinstance(crit, list):
+        print("w/ tags in {", ','.join(crit), "}")
+    elif hasattr(crit, 'search'):
+        print('matching', crit.pattern)
+    elif callable(crit):
+        print('satisfying lambda')
+    else:
+        print("(unknown-criterion: {crit})".format(crit=crit))
 
 
-# Convert a timestamp to noon on the same day.
-# This matters because if you start with some timestamp and try to step
-# forward 24 hours at a time then daylight savings time can screw you up.
-# You might add 24 hours and still be on the same day. If you start from
-# noon that you shouldn't have that problem.
-sub daysnap { my($t) = @_;
-  my($sec,$min,$hr, $d,$m,$y) = localtime($t);
-  return timelocal(0,0,12, $d,$m,$y);
-}
+def tagmatch(tags, crit):
+    '''Whether the given string of space-separated tags matches the given
+    criterion.'''
+    if isinstance(crit, str):
+        return re.search(r'\b{crit}\b'.format(crit=crit), tags)
+    if isinstance(crit, list):
+      for c in crit:
+          if re.search(r'\b{c}\b'.format(c), tags):
+              return true
+      else:
+          return false
+    elif callable(crit):
+        return crit(tags)
+    elif hasattr(crit, 'search'):
+        return crit.search(tags)
+    else:
+        sys.stderr.write(
+            "Criterion {crit} is neither string, array, regex, nor lambda!".format(crit=crit))
+        sys.exit(1)
+
+def daysnap(t):
+    '''Convert a timestamp to noon on the same day.  This matters because
+    if you start with some timestamp and try to step forward 24 hours at a
+    time then daylight savings time can screw you up.  You might add 24
+    hours and still be on the same day. If you start from noon that you
+    shouldn't have that problem.  '''
+    y, m, d, hr, min, sec, *rest = time.localtime(t)
+    return time.mktime((y, m, d, 12, 0, 0, 0, 0, -1))
 
 # $string = do {local (@ARGV,$/) = $file; <>}; # slurp file into string
+
+if __name__ == '__main__':
+    main()
