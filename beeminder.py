@@ -6,7 +6,7 @@
 # to avoid calling the Beeminder API if the tagtime log changed but it did not
 # entail any changes relevant to the given Beeminder graph.
 
-import settings
+from settings import settings
 import util
 import beemapi
 
@@ -22,16 +22,17 @@ import time
 def main():
     ping = hours_per_ping = settings.gap / 3600
 
-    if len(sys.argv) != 2:
-    print("Usage: ./beeminder.py tagtimelog user/slug")
+    if len(sys.argv) != 3:
+        print("Usage: ./beeminder.py tagtimelog user/slug", file=sys.stderr)
     sys.exit(1)
 
     ttlf = sys.argv[1]     # tagtime log filename
     usrslug = sys.argv[2]  # like alice/weight
 
-
     m = re.search(r"^(?:.*?(?:\.\/)?data\/)?([^\+\/\.]*)[\+\/]([^\.]*)", usrslug)
     usr, slug = m.groups();
+
+    beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=True)
 
     beef = os.path.join(settings.path, usr + slug + '.bee') # beef = bee file (cache of data on bmndr)
 
@@ -137,7 +138,7 @@ def main():
         else:   # this case is impossible
                 print("Recreating Beeminder cache ($tmp)[$bf1$bf2$bf3$bf4]... ")
 
-        data = beemfetch(usr, slug)
+        data = beem.goal(slug)
         print("[Bmndr data fetched]\n")
 
         # take one pass to delete any duplicates on bmndr; must be one datapt per day
@@ -153,7 +154,7 @@ def main():
 		        print("Beeminder has multiple datapoints for the same day. "
 		              "The other id is {}. Deleting this one:".format(remember[ts]))
 		        pprint(x)
-		        beemdelete(usr, slug, b);
+                        beem.delete_point(slug, b);
 		        todelete.append(i)
 		        remember[ts] = b;
 		        i += 1
@@ -180,7 +181,7 @@ def main():
             if ts in bh:
 	            raise ValueError(
 		            "Duplicate cached/fetched id datapoints for {ts}: {bhts}, {b}.\n{val}".format(
-			            ts=ts, bhts=bh[ts], b=b, val=pformat(x))
+                                    ts=ts, bhts=bh[ts], b=b, val=pformat(x)))
 		    bh[ts] = b
     with open(ttlf) as T:
         np = 0 # number of lines (pings) in the tagtime log that match
@@ -193,8 +194,9 @@ def main():
             tags = strip(stuff)
         if tagmatch(tags, crit):
             y, m, d, *rest = time.localtime(t)
-            ph1["$y-$m-$d"] += 1
-            sh1["$y-$m-$d"] += stripb($stuff) + ", "
+            ymd = '{}-{}-{}'.format(y, m, d)
+            ph1[ymd] += 1
+            sh1[ymd] += stripb(stuff) + ", "
             np += 1
             if t < start:
                 start = t
@@ -232,12 +234,14 @@ def main():
         if b == "" and s1 > 0: # no such datapoint on beeminder: CREATE
             nadd += 1
             plus += p1
-            bh[ts] = beemcreate(usr, slug, t, p1 * ping, splur(p1, 'ping') + ': ' + s1)
+            bh[ts] = beem.create_point(usr, slug, value=p1*ping,
+                                       timestamp=t,
+                                       comment=splur(p1, 'ping') + ': ' + s1)
             #print "Created: $y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
         elif p0 > 0 and p1 <= 0: # on beeminder but not in tagtime log: DELETE
             ndel += 1
             minus += p0
-            beemdelete(usr, slug, b)
+            beem.delete_point(slug, b)
             #print "Deleted: $y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\"\n";
         elif p0 != p1 or s0 != s1:  # bmndr & tagtime log differ: UPDATE
             nchg += 1
@@ -245,7 +249,9 @@ def main():
                 plus += p1 - p0
             elif p1 < p0:
                 minus += p0 - p1
-            beemupdate(usr, slug, b, t, (p1*ping), splur(p1, 'ping') + ': ' + s1)
+            beem.update_point(slug, b, value=(p1*ping),
+                              timestamp=t,
+                              comment=splur(p1, 'ping') + ': ' + s1)
             # If this fails, it may well be because the point being updated was deleted/
             # replaced on another machine (possibly as the result of a merge) and is no
             # longer on the server. In which case we should probably fail gracefully
@@ -274,8 +280,8 @@ def main():
             f.write(out)
     nd = len(keys(ph1))  # number of datapoints
     if nd != nquo + nchg + nadd:  # sanity check
-        print "\nERROR: total != nquo+nchg+nadd ({nd} != {nquo}+{nchg}+{nadd})\n".format(
-            nd=nd, nquo=nquo, nchg=nchg, nadd=nadd)
+        print("\nERROR: total != nquo+nchg+nadd ({nd} != {nquo}+{nchg}+{nadd})\n".format(
+            nd=nd, nquo=nquo, nchg=nchg, nadd=nadd))
 
     print("Datapts: {nd} (~{nquo} *{nchg} +{nadd} -{ndel}), ".format(
         nd=nd, nquo=nquo, nchg=nchg, nadd=nadd, ndel=ndel),
@@ -299,10 +305,10 @@ def tagmatch(tags, crit):
         return re.search(r'\b{crit}\b'.format(crit=crit), tags)
     if isinstance(crit, list):
       for c in crit:
-          if re.search(r'\b{c}\b'.format(c), tags):
-              return true
+          if re.search(r'\b{c}\b'.format(c=c), tags):
+              return True
       else:
-          return false
+          return False
     elif callable(crit):
         return crit(tags)
     elif hasattr(crit, 'search'):
