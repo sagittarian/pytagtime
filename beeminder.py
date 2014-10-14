@@ -19,13 +19,16 @@ import time
 # use Data::Dumper; $Data::Dumper::Terse = 1;
 # $| = 1; # autoflush
 
+def usage():
+    print("Usage: ./beeminder.py tagtimelog user/slug", file=sys.stderr)
+    print("auth_token must be defined in .pytagtimerc", file=sys.stderr)
+    sys.exit(1)
+
 def main():
     ping = hours_per_ping = settings.gap / 3600
 
-    if len(sys.argv) != 3:
-        print("Usage: ./beeminder.py tagtimelog user/slug", file=sys.stderr)
-    sys.exit(1)
-
+    if len(sys.argv) != 3 or settings.auth_token is None:
+        usage()
     ttlf = sys.argv[1]     # tagtime log filename
     usrslug = sys.argv[2]  # like alice/weight
 
@@ -146,29 +149,29 @@ def main():
         remember = None
         # my @todelete;
         for x in data:
-	        tm = time.localtime(x["timestamp"]);
-	        y, m, d = tm.tm_year, tm.tm_mon, tm.tm_mday
-	        ts = time.strftime('%Y-%m-%d', x['timestamp'])
-	        b = x['id']
-	        if remember.get(ts) is not None:
-		        print("Beeminder has multiple datapoints for the same day. "
-		              "The other id is {}. Deleting this one:".format(remember[ts]))
-		        pprint(x)
+                tm = time.localtime(x["timestamp"]);
+                y, m, d = tm.tm_year, tm.tm_mon, tm.tm_mday
+                ts = time.strftime('%Y-%m-%d', x['timestamp'])
+                b = x['id']
+                if remember.get(ts) is not None:
+                        print("Beeminder has multiple datapoints for the same day. "
+                              "The other id is {}. Deleting this one:".format(remember[ts]))
+                        pprint(x)
                         beem.delete_point(slug, b);
-		        todelete.append(i)
-		        remember[ts] = b;
-		        i += 1
+                        todelete.append(i)
+                        remember[ts] = b;
+                        i += 1
 
         # for my $x (reverse(@todelete)) {
         #   splice(@$data,$x,1);
         # }
 
         for x in data:   # parse the bmndr data into %ph0, %sh0, %bh
-	        y, m, d, *rest = time.localtime(x['timestamp'])
-	        ts = time.strftime('%Y-%m-%d', x['timestamp'])
-	        t = util.pd(ts)  # XXX isn't x['timestamp'] the unix time anyway already
-	        if t < start:
-		        start = t
+            y, m, d, *rest = time.localtime(x['timestamp'])
+            ts = time.strftime('%Y-%m-%d', x['timestamp'])
+            t = util.pd(ts)  # XXX isn't x['timestamp'] the unix time anyway already
+            if t < start:
+                start = t
             if t > end:
                 end = t
             v = x['value']
@@ -179,10 +182,10 @@ def main():
             sh0[ts] = re.sub(r'[^\:]*\:\s+', '', c) # drop the "n pings:" comment prefix
             # This really shouldn't happen.
             if ts in bh:
-	            raise ValueError(
-		            "Duplicate cached/fetched id datapoints for {ts}: {bhts}, {b}.\n{val}".format(
+                    raise ValueError(
+                            "Duplicate cached/fetched id datapoints for {ts}: {bhts}, {b}.\n{val}".format(
                                     ts=ts, bhts=bh[ts], b=b, val=pformat(x)))
-		    bh[ts] = b
+            bh[ts] = b
     with open(ttlf) as T:
         np = 0 # number of lines (pings) in the tagtime log that match
         for line in T: # parse the tagtime log file
@@ -210,16 +213,16 @@ def main():
         sh1[key] = re.sub(r'\s*(\||\,)\s*$', '', sh1[key])
 
 
-   #print "Processing datapoints in: ", ts($start), " - ", ts($end), "\n";
+    #print "Processing datapoints in: ", ts($start), " - ", ts($end), "\n";
 
-   nquo = 0  # number of datapoints on beeminder with no changes (status quo)
-   ndel = 0  # number of deleted datapoints on beeminder
-   nadd = 0  # number of created datapoints on beeminder
-   nchg = 0  # number of updated datapoints on beeminder
-   minus = 0 # total number of pings decreased from what's on beeminder
-   plus = 0  # total number of pings increased from what's on beeminder
-   ii = 0
-   for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
+    nquo = 0  # number of datapoints on beeminder with no changes (status quo)
+    ndel = 0  # number of deleted datapoints on beeminder
+    nadd = 0  # number of created datapoints on beeminder
+    nchg = 0  # number of updated datapoints on beeminder
+    minus = 0 # total number of pings decreased from what's on beeminder
+    plus = 0  # total number of pings increased from what's on beeminder
+    ii = 0
+    for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
         y, m, d, *rest = time.localtime(t)
         ts = time.strftime('%Y-%m-%d', t)
         b = bh.get(ts, "")
