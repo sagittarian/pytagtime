@@ -35,7 +35,7 @@ def main():
     m = re.search(r"^(?:.*?(?:\.\/)?data\/)?([^\+\/\.]*)[\+\/]([^\.]*)", usrslug)
     usr, slug = m.groups();
 
-    beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=True)
+    beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=['get'])
 
     beef = os.path.join(settings.path, usr + slug + '.bee') # beef = bee file (cache of data on bmndr)
 
@@ -49,6 +49,7 @@ def main():
     #  }
     #}
 
+    print('usrslug is', usrslug)
     crit = settings.beeminder.get(usrslug)
     if crit is None:
         raise ValueError("Can't determine which tags match $usrslug")
@@ -63,7 +64,10 @@ def main():
     # bflag is true if we need to regenerate the beeminder cache file. reasons we'd
     # need to: 1. it doesn't exist or is empty; 2. any beeminder IDs are missing
     # from the cache file; 3. there are multiple datapoints for the same day.
-    bflag = not os.stat(beef).st_size
+    try:
+        bflag = not os.stat(beef).st_size
+    except FileNotFoundError:
+        bflag = True
     bf1 = False
     bf2 = False
     bf3 = False

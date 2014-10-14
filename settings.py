@@ -44,7 +44,11 @@ DEFAULTS = {
     # 'playsound': "echo -e '\a'", # this is the default if $playsound not defined.
     # 'playsound': None,  # makes tagtime stay quiet.
     'playsound': "echo -e '\a'",
-    'quiet': False
+    'quiet': False,
+
+    'auth_token': None,
+
+    'beeminder': {}
 }
 
 def import_from_path(path, namespace=None):

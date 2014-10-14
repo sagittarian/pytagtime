@@ -13,7 +13,7 @@ class Beeminder:
 
     def __init__(self, auth_token, username=None, dryrun=False):
         self.auth_token = auth_token
-        self.setuser(username)
+        self._username = username
         self._user = None
         self._goals = {}
         self._data = {}
@@ -24,7 +24,8 @@ class Beeminder:
         and the auth token'''
         if self.dryrun:
 	        print('{} {} {}'.format(request_type.upper(), path, params))
-	        return
+	        if request_type not in self.dryrun:
+		        return
         path = path.lstrip('/')
         method = getattr(requests, request_type)
         args = {'auth_token': self.auth_token}
