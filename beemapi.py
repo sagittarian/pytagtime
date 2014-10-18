@@ -11,21 +11,31 @@ class Beeminder:
 
     API_URL = 'https://www.beeminder.com/api/v1/'
 
-    def __init__(self, auth_token, username=None, dryrun=False):
+    def __init__(self, auth_token, username=None, dryrun=False, debug=False):
         self.auth_token = auth_token
         self._username = username
         self._user = None
         self._goals = {}
         self._data = {}
+        self.debug = debug
         self.dryrun = dryrun
 
     def get(self, path, params=None, request_type='get'):
         '''Return the url for accessing path, adding the given args
         and the auth token'''
+        if self.debug:
+	        print('{method} {path} {params}'.format(
+		        method=request_type.upper(),
+		        path=path,
+		        params=params or ''
+	        ))
         if self.dryrun:
 	        print('{} {} {}'.format(request_type.upper(), path, params))
-	        if request_type not in self.dryrun:
-		        return
+	        key = (path,
+	               tuple(sorted(params.items())) if params is not None else (),
+	               request_type)
+	        print(repr(key))
+	        return self.dryrun[key]
         path = path.lstrip('/')
         method = getattr(requests, request_type)
         args = {'auth_token': self.auth_token}
