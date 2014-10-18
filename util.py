@@ -96,9 +96,7 @@ def strip(s):
 
 def stripb(s):
     '''Strips out stuff in brackets only; remaining brackets means
-    they were unmatched.
-
-    '''
+    they were unmatched.'''
     return re.sub(r'\s*\[[^\[\]]*\]', '', s)
 
 

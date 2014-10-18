@@ -64,7 +64,7 @@ def main():
 	# ph1 and sh1 are based on the current tagtime log and
 	# ph0 and sh0 are based on the cached .bee file or beeminder-fetched data.
 	start = time.time()	  # start and end are the earliest and latest times we will
-	end	  = 0		  # need to care about when updating beeminder.
+	end	  = 0		      # need to care about when updating beeminder.
 	# bflag is true if we need to regenerate the beeminder cache file. reasons we'd
 	# need to: 1. it doesn't exist or is empty; 2. any beeminder IDs are missing
 	# from the cache file; 3. there are multiple datapoints for the same day.
@@ -128,9 +128,9 @@ def main():
 		bf4 = True
 
 	if bflag: # re-slurp all the datapoints from beeminder
-		ph0 = None
-		sh0 = None
-		bh = None
+		ph0 = {}
+		sh0 = {}
+		bh = {}
 		start = time.time()	 # reset these since who knows what
 					 # happened to them when we
 		end	  = 0		 # calculated them from the cache file we
@@ -153,33 +153,42 @@ def main():
 		print("[Bmndr data fetched]\n")
 
 		# take one pass to delete any duplicates on bmndr; must be one datapt per day
-		i = 0;
-		remember = None
-		# my @todelete;
+		#i = 0;
+		remember = {}
 		print('data is ', pformat(data))
+		newdata = []
 		for x in data:
 			print('x is', x)
 			tm = time.localtime(x["timestamp"])
 			y, m, d = tm.tm_year, tm.tm_mon, tm.tm_mday
-			ts = time.strftime('%Y-%m-%d', x['timestamp'])
+			timetuple = time.localtime(x['timestamp'])
+			# XXX okay so we're using localtime here, but
+			# does this change if/when generalized
+			# midnight is rolled out, etc?
+			ts = time.strftime('%Y-%m-%d', timetuple)
 			b = x['id']
 			if remember.get(ts) is not None:
 				print("Beeminder has multiple datapoints for the same day. "
 					  "The other id is {}. Deleting this one:".format(remember[ts]))
 				pprint(x)
-				beem.delete_point(slug, b);
-				todelete.append(i)
-				remember[ts] = b;
-				i += 1
+				beem.delete_point(slug, b)
+			else:
+				newdata.append(x)
+			remember[ts] = b
+			#i += 1
 
+		data = newdata
 		# for my $x (reverse(@todelete)) {
 		#	splice(@$data,$x,1);
 		# }
 
 		for x in data:	 # parse the bmndr data into %ph0, %sh0, %bh
 			y, m, d, *rest = time.localtime(x['timestamp'])
-			ts = time.strftime('%Y-%m-%d', x['timestamp'])
-			t = util.pd(ts)	 # XXX isn't x['timestamp'] the unix time anyway already
+			timetuple = time.localtime(x['timestamp'])
+			# XXX see note above about generalized midnight
+			ts = time.strftime('%Y-%m-%d', timetuple)
+			#t = util.pd(ts)	 # XXX isn't x['timestamp'] the unix time anyway already
+			t = x['timestamp']
 			if t < start:
 				start = t
 			if t > end:
@@ -204,12 +213,12 @@ def main():
 				raise ValueError("Bad line in TagTime log: " + line)
 			t = m.group(1)	# timestamp as parsed from the tagtime log
 			stuff = m.group(2)	# tags and comments for this line of the log
-			tags = strip(stuff)
+			tags = util.strip(stuff)
 		if tagmatch(tags, crit):
 			y, m, d, *rest = time.localtime(t)
 			ymd = '{}-{}-{}'.format(y, m, d)
 			ph1[ymd] += 1
-			sh1[ymd] += stripb(stuff) + ", "
+			sh1[ymd] += util.stripb(stuff) + ", "
 			np += 1
 			if t < start:
 				start = t
