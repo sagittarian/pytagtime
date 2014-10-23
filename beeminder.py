@@ -6,8 +6,6 @@
 # to avoid calling the Beeminder API if the tagtime log changed but it did not
 # entail any changes relevant to the given Beeminder graph.
 
-from mock import mock
-
 from settings import settings
 import util
 import beemapi
@@ -39,7 +37,7 @@ def main():
 		usage()
 	usr, slug = m.groups();
 
-	beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=mock)
+	beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=True, debug=True)
 
 	beef = os.path.join(settings.path, usr + slug + '.bee') # beef = bee file (cache of data on bmndr)
 
@@ -63,6 +61,13 @@ def main():
 	# bh (beeminder hash) maps "y-m-d" to the bmndr ID of the datapoint on that day.
 	# ph1 and sh1 are based on the current tagtime log and
 	# ph0 and sh0 are based on the cached .bee file or beeminder-fetched data.
+	ph = {}
+	sh = {}
+	bh = {}
+	ph1 = {}
+	sh1 = {}
+	ph0 = {}
+	sh0 = {}
 	start = time.time()	  # start and end are the earliest and latest times we will
 	end	  = 0		      # need to care about when updating beeminder.
 	# bflag is true if we need to regenerate the beeminder cache file. reasons we'd
@@ -139,7 +144,7 @@ def main():
 		#my $tmp = $beef;  $tmp =~ s/(?:[^\/]*\/)*//; # strip path from filename
 		tmp = os.path.basename(beef)
 		if bf1:
-			print("Cache file missing or empty ($tmp); recreating... ")
+			print("Cache file missing or empty ({}); recreating... ".format(tmp))
 		elif bf2:
 			print("Cache file doesn't have all the Bmndr IDs; recreating... ")
 		elif bf3:
@@ -147,7 +152,9 @@ def main():
 		elif bf4:
 			print("Couldn't read cache file; recreating... ")
 		else:	# this case is impossible
-			print("Recreating Beeminder cache ($tmp)[$bf1$bf2$bf3$bf4]... ")
+			print("Recreating Beeminder cache ({})[{bf1}{bf2}{bf3}{bf4}]... ".format(
+				bf1=bf1, bf2=bf2, bf3=bf3, bf4=bf4
+			))
 
 		data = beem.data(slug)
 		print("[Bmndr data fetched]\n")
@@ -155,10 +162,8 @@ def main():
 		# take one pass to delete any duplicates on bmndr; must be one datapt per day
 		#i = 0;
 		remember = {}
-		print('data is ', pformat(data))
 		newdata = []
 		for x in data:
-			print('x is', x)
 			tm = time.localtime(x["timestamp"])
 			y, m, d = tm.tm_year, tm.tm_mon, tm.tm_mday
 			timetuple = time.localtime(x['timestamp'])
@@ -228,7 +233,7 @@ def main():
 
 	# clean up $sh1: trim trailing commas, pipes, and whitespace
 	# for(sort(keys(%sh1))) { $sh1{$_} =~ s/\s*(\||\,)\s*$//; }
-	for key in sorted(keys(sh1)):
+	for key in sorted(sh1.keys()):
 		sh1[key] = re.sub(r'\s*(\||\,)\s*$', '', sh1[key])
 
 
@@ -242,10 +247,12 @@ def main():
 	plus  = 0  # total number of pings increased from what's on beeminder
 	ii    = 0
 	for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
-		y, m, d, *rest = time.localtime(t)
-		ts = time.strftime('%Y-%m-%d', t)
+		print('t is', t)
+		timetuple = time.localtime(t)
+		y, m, d, *rest = timetuple
+		ts = time.strftime('%Y-%m-%d', timetuple)
 		b = bh.get(ts, "")
-		p0 = ph0.get(ts, "")
+		p0 = ph0.get(ts, 0)
 		p1 = ph1.get(ts, 0)
 		s0 = sh0.get(ts, "")
 		s1 = sh1.get(ts, "")
@@ -253,12 +260,12 @@ def main():
 			if b:
 				nquo += 1
 				continue
-		if b == "" and s1 > 0: # no such datapoint on beeminder: CREATE
+		if b == "" and p1 > 0: # no such datapoint on beeminder: CREATE
 			nadd += 1
 			plus += p1
 			bh[ts] = beem.create_point(usr, slug, value=p1*ping,
 						   timestamp=t,
-						   comment=splur(p1, 'ping') + ': ' + s1)
+						   comment=util.splur(p1, 'ping') + ': ' + s1)
 			#print "Created: $y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
 		elif p0 > 0 and p1 <= 0: # on beeminder but not in tagtime log: DELETE
 			ndel += 1
@@ -273,7 +280,7 @@ def main():
 				minus += p0 - p1
 			beem.update_point(slug, b, value=(p1*ping),
 					  timestamp=t,
-					  comment=splur(p1, 'ping') + ': ' + s1)
+					  comment=util.splur(p1, 'ping') + ': ' + s1)
 			# If this fails, it may well be because the point being updated was deleted/
 			# replaced on another machine (possibly as the result of a merge) and is no
 			# longer on the server. In which case we should probably fail gracefully
@@ -298,7 +305,7 @@ def main():
 			c = sh1[ts]
 			b = kh[ts]
 			out = '{y} {m} {d}	{v} "{pings}: {c} [bID:{b}]'.format(
-			y=y, m=m, d=d, v=v, pings=splur(p, "ping"), c=c, b=b)
+			y=y, m=m, d=d, v=v, pings=util.splur(p, "ping"), c=c, b=b)
 			f.write(out)
 	nd = len(keys(ph1))	 # number of datapoints
 	if nd != nquo + nchg + nadd:  # sanity check
@@ -347,7 +354,7 @@ def daysnap(t):
 	hours and still be on the same day. If you start from noon that you
 	shouldn't have that problem.  '''
 	y, m, d, hr, min, sec, *rest = time.localtime(t)
-	return time.mktime((y, m, d, 12, 0, 0, 0, 0, -1))
+	return int(time.mktime((y, m, d, 12, 0, 0, 0, 0, -1)))
 
 # $string = do {local (@ARGV,$/) = $file; <>}; # slurp file into string
 
