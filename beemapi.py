@@ -28,8 +28,14 @@ class BeeminderMock:
 			        if pt['id'] == dataid:
 				        del self.mockdata[i]
 				        return pt
-			else:
-				return None
+			return None
+		if request_type == 'put':
+			dataid = self.getid(path)
+			for pt in self.mockdata:
+				if pt['id'] == dataid:
+					pt.update(params)
+					return pt
+			return None
 		raise ValueError((path, params, request_type))
 
 class BeeminderBackend:
@@ -147,6 +153,20 @@ class Beeminder:
 			params['comment'] = comment
 		if params:
 			return self.put(path, params=params)
+
+	def create_point(self, slug, value,
+	                 timestamp=None, comment=None,
+	                 sendmail=False, requestid=None):
+		path = '/users/{}/goals/{}/datapoints.json'.format(
+			self.username, slug)
+		params = dict(value=value, sendmail=sendmail)
+		if timestamp is not None:
+			params['timestamp'] = timestamp
+		if comment is not None:
+			params['comment'] = comment
+		if requestid is not None:
+			params['requestid'] = requestid
+		return self.post(path, params=params)
 
 	def create_all(self, slug, points):
 		path = '/users/{}/goals/{}/datapoints/create_all.json'.format(

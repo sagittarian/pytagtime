@@ -50,7 +50,7 @@ def lastln():
     '''Returns the last line in the log but as a 2-element array
     consisting of timestamp and rest of the line.'''
     x = None
-    with open(logf) as f:
+    with open(settings.logf) as f:
         for x in f:
             pass
     m = re.search(r'^\s*(\d+)\s*(.*)$', x)

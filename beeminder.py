@@ -12,6 +12,7 @@ import beemapi
 
 import os.path
 from pprint import pprint, pformat
+from collections import defaultdict
 import re
 import sys
 import time
@@ -31,7 +32,6 @@ def main():
 		usage()
 	ttlf = sys.argv[1]	   # tagtime log filename
 	usrslug = sys.argv[2]  # like alice/weight
-
 	m = re.search(r"^(?:.*?(?:\.\/)?data\/)?([^\+\/\.]*)[\+\/]([^\.]*)", usrslug)
 	if not m:
 		usage()
@@ -61,13 +61,13 @@ def main():
 	# bh (beeminder hash) maps "y-m-d" to the bmndr ID of the datapoint on that day.
 	# ph1 and sh1 are based on the current tagtime log and
 	# ph0 and sh0 are based on the cached .bee file or beeminder-fetched data.
-	ph = {}
-	sh = {}
+	ph = defaultdict(int)
+	sh = defaultdict(str)
 	bh = {}
-	ph1 = {}
-	sh1 = {}
-	ph0 = {}
-	sh0 = {}
+	ph1 = defaultdict(int)
+	sh1 = defaultdict(str)
+	ph0 = defaultdict(int)
+	sh0 = defaultdict(str)
 	start = time.time()	  # start and end are the earliest and latest times we will
 	end	  = 0		      # need to care about when updating beeminder.
 	# bflag is true if we need to regenerate the beeminder cache file. reasons we'd
@@ -157,7 +157,7 @@ def main():
 			))
 
 		data = beem.data(slug)
-		print("[Bmndr data fetched]\n")
+		print("[Bmndr data fetched]")
 
 		# take one pass to delete any duplicates on bmndr; must be one datapt per day
 		#i = 0;
@@ -210,25 +210,27 @@ def main():
 					"Duplicate cached/fetched id datapoints for {ts}: {bhts}, {b}.\n{val}".format(
 						ts=ts, bhts=bh[ts], b=b, val=pformat(x)))
 			bh[ts] = b
+
 	with open(ttlf) as T:
 		np = 0 # number of lines (pings) in the tagtime log that match
 		for line in T: # parse the tagtime log file
 			m = re.search(r'^(\d+)\s*(.*)$', line)
 			if not m:
 				raise ValueError("Bad line in TagTime log: " + line)
-			t = m.group(1)	# timestamp as parsed from the tagtime log
+			t = int(m.group(1))	# timestamp as parsed from the tagtime log
 			stuff = m.group(2)	# tags and comments for this line of the log
 			tags = util.strip(stuff)
-		if tagmatch(tags, crit):
-			y, m, d, *rest = time.localtime(t)
-			ymd = '{}-{}-{}'.format(y, m, d)
-			ph1[ymd] += 1
-			sh1[ymd] += util.stripb(stuff) + ", "
-			np += 1
-			if t < start:
-				start = t
-			if t > end:
-				end = t
+			if tagmatch(tags, crit):
+				#print('found a match for line: {}'.format(line))
+				y, m, d, *rest = time.localtime(t)
+				ymd = '{}-{}-{}'.format(y, m, d)
+				ph1[ymd] += 1
+				sh1[ymd] += util.stripb(stuff) + ", "
+				np += 1
+				if t < start:
+					start = t
+				if t > end:
+					end = t
 
 
 	# clean up $sh1: trim trailing commas, pipes, and whitespace
@@ -247,7 +249,6 @@ def main():
 	plus  = 0  # total number of pings increased from what's on beeminder
 	ii    = 0
 	for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
-		print('t is', t)
 		timetuple = time.localtime(t)
 		y, m, d, *rest = timetuple
 		ts = time.strftime('%Y-%m-%d', timetuple)
@@ -259,13 +260,12 @@ def main():
 		if p0 == p1 and s0 == s1: # no change to the datapoint on this day
 			if b:
 				nquo += 1
-				continue
-		if b == "" and p1 > 0: # no such datapoint on beeminder: CREATE
+			continue
+		if not b and p1 > 0: # no such datapoint on beeminder: CREATE
 			nadd += 1
 			plus += p1
-			bh[ts] = beem.create_point(usr, slug, value=p1*ping,
-						   timestamp=t,
-						   comment=util.splur(p1, 'ping') + ': ' + s1)
+			bh[ts] = beem.create_point(slug, value=p1*ping,
+			    timestamp=t, comment=util.splur(p1, 'ping') + ': ' + s1)
 			#print "Created: $y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
 		elif p0 > 0 and p1 <= 0: # on beeminder but not in tagtime log: DELETE
 			ndel += 1
@@ -303,11 +303,11 @@ def main():
 			p = ph1[ts]
 			v = p * ping
 			c = sh1[ts]
-			b = kh[ts]
+			b = bh[ts]
 			out = '{y} {m} {d}	{v} "{pings}: {c} [bID:{b}]'.format(
 			y=y, m=m, d=d, v=v, pings=util.splur(p, "ping"), c=c, b=b)
 			f.write(out)
-	nd = len(keys(ph1))	 # number of datapoints
+	nd = len(ph1.keys())	 # number of datapoints
 	if nd != nquo + nchg + nadd:  # sanity check
 		print("\nERROR: total != nquo+nchg+nadd ({nd} != {nquo}+{nchg}+{nadd})\n".format(
 			nd=nd, nquo=nquo, nchg=nchg, nadd=nadd))
