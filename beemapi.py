@@ -8,6 +8,13 @@ import re
 
 import requests
 
+import random
+hexdigits = '0123456789abcdef'
+def newid():
+	'''When converting from the CSV file we don't have the datapoint's
+	internal beeminder ID, so we'll just fake something.'''
+	return ''.join(random.choice(hexdigits) for i in range(24))
+
 class BeeminderMock:
 
 	def __init__(self, mockdata):
@@ -20,8 +27,6 @@ class BeeminderMock:
 
 	def execute(self, path, params=None, request_type='get'):
 		print(path, params, request_type)
-		if path.endswith('datapoints.json'):
-			return self.mockdata
 		if request_type == 'delete':
 			dataid = self.getid(path)
 			for (i, pt) in enumerate(self.mockdata):
@@ -36,6 +41,13 @@ class BeeminderMock:
 					pt.update(params)
 					return pt
 			return None
+		if request_type == 'post' and path.endswith('datapoints.json'):
+			point = params
+			point['id'] = newid()
+			self.mockdata.append(point)
+			return point
+		if path.endswith('datapoints.json'):
+			return self.mockdata
 		raise ValueError((path, params, request_type))
 
 class BeeminderBackend:
