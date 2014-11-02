@@ -39,7 +39,8 @@ def main():
 
 	beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=True, debug=True)
 
-	beef = os.path.join(settings.path, usr + slug + '.bee') # beef = bee file (cache of data on bmndr)
+	# beef = bee file (cache of data on bmndr)
+	beef = os.path.join(settings.path, '{}+{}.bee'.format(usr, slug))
 
 	#if(defined(@beeminder)) { # for backward compatibility
 	#  print "Deprecation warning: Get your settings file in line!\n";
@@ -51,7 +52,6 @@ def main():
 	#  }
 	#}
 
-	print('usrslug is', usrslug)
 	crit = settings.beeminder.get(usrslug)
 	if crit is None:
 		raise ValueError("Can't determine which tags match {}".format(usrslug))
@@ -69,7 +69,7 @@ def main():
 	ph0 = defaultdict(int)
 	sh0 = defaultdict(str)
 	start = time.time()	  # start and end are the earliest and latest times we will
-	end	  = 0		      # need to care about when updating beeminder.
+	end	  = 0			  # need to care about when updating beeminder.
 	# bflag is true if we need to regenerate the beeminder cache file. reasons we'd
 	# need to: 1. it doesn't exist or is empty; 2. any beeminder IDs are missing
 	# from the cache file; 3. there are multiple datapoints for the same day.
@@ -84,32 +84,37 @@ def main():
 	if bflag:
 		bf1 = True
 
-	remember = None # remember which dates we've already seen in the cache file
+	remember = {} # remember which dates we've already seen in the cache file
 	try:
 		with open(beef, 'r') as B:
 			for line in B:
-				m = re.search('''
+				m = re.search(r'''
 					(\d+)\s+		  # year
 					(\d+)\s+		  # month
 					(\d+)\s+		  # day
 					(\S+)\s+		  # value
-					\"(\d+)		  # number of pings
-					  (?:[^\n\"\(]*)  # currently the string " ping(s)"
-					  \:\		  # the ": " after " pings"
+					"(\d+)			  # number of pings
+					  (?:[^\n\"\(:]*) # currently the string " ping(s)"
+					  :				  # the ": " after " pings"
 					  ([^\[]*)		  # the comment string (no brackets)
-					  (?:\[		  # if present,
-					bID\:([^\]]*) # the beeminder ID, in brackets
-					  \])?		  # end bracket for "[bID:abc123]"
-					\s*\"
+					  (?:\[			  # if present,
+					bID\:([^\]]*)	  # the beeminder ID, in brackets
+					  \])?			  # end bracket for "[bID:abc123]"
+					\s*"
 				''', line, re.VERBOSE)
 				# XXX if not m set an error flag and continue
 				y, m, d, v, p, c, b = m.groups()
+				y = int(y)
+				m = int(m)
+				d = int(d)
+				p = int(p)
+				c = c.strip()
 				ts = '{}-{}-{}'.format(y, m, d)
 
 				ph0[ts] = p
 				#$ph0{$ts} = $p;
 				#$c =~ s/\s+$//;
-				m = re.match(r'\s+$/', c)
+				#m = re.match(r'\s+$/', c)
 				sh0[ts] = c
 				bh[ts] = b
 				t = time.mktime((y, m, d, 0, 0, 0, 0, 0, -1))
@@ -124,7 +129,7 @@ def main():
 						print("Problem with this line in cache file:\n{}".format(line))
 					elif bf2 == 2:
 						print("Additional problems with cache file, which is expected if this "
-						      "is your first time updating TagTime with the new Bmndr API.\n")
+							  "is your first time updating TagTime with the new Bmndr API.\n")
 				if remember.get(ts):
 					bflag = bf3 = True
 				remember[ts] = True;
@@ -133,13 +138,12 @@ def main():
 		bf4 = True
 
 	if bflag: # re-slurp all the datapoints from beeminder
-		ph0 = {}
-		sh0 = {}
+		ph0 = defaultdict(int)
+		sh0 = defaultdict(str)
 		bh = {}
-		start = time.time()	 # reset these since who knows what
-					 # happened to them when we
-		end	  = 0		 # calculated them from the cache file we
-					 # decided to toss.
+		start = time.time()	# reset these since who knows what happened to
+		end	  = 0			# them when we calculated them from the cache file
+							# we decided to toss.
 
 		#my $tmp = $beef;  $tmp =~ s/(?:[^\/]*\/)*//; # strip path from filename
 		tmp = os.path.basename(beef)
@@ -186,10 +190,9 @@ def main():
 		# for my $x (reverse(@todelete)) {
 		#	splice(@$data,$x,1);
 		# }
-
 		for x in data:	 # parse the bmndr data into %ph0, %sh0, %bh
-			y, m, d, *rest = time.localtime(x['timestamp'])
 			timetuple = time.localtime(x['timestamp'])
+			y, m, d, *rest = timetuple
 			# XXX see note above about generalized midnight
 			ts = time.strftime('%Y-%m-%d', timetuple)
 			#t = util.pd(ts)	 # XXX isn't x['timestamp'] the unix time anyway already
@@ -203,7 +206,7 @@ def main():
 			b = x['id']
 			i = re.search(r'^\d+', c)
 			ph0[ts] = int(i.group(0) if i else 0) # ping count is first thing in the comment
-			sh0[ts] = re.sub(r'[^\:]*\:\s+', '', c) # drop the "n pings:" comment prefix
+			sh0[ts] = re.sub(r'[^:]*:\s+', '', c) # drop the "n pings:" comment prefix
 			# This really shouldn't happen.
 			if ts in bh:
 				raise ValueError(
@@ -211,33 +214,35 @@ def main():
 						ts=ts, bhts=bh[ts], b=b, val=pformat(x)))
 			bh[ts] = b
 
-	with open(ttlf) as T:
-		np = 0 # number of lines (pings) in the tagtime log that match
-		for line in T: # parse the tagtime log file
-			m = re.search(r'^(\d+)\s*(.*)$', line)
-			if not m:
-				raise ValueError("Bad line in TagTime log: " + line)
-			t = int(m.group(1))	# timestamp as parsed from the tagtime log
-			stuff = m.group(2)	# tags and comments for this line of the log
-			tags = util.strip(stuff)
-			if tagmatch(tags, crit):
-				#print('found a match for line: {}'.format(line))
-				y, m, d, *rest = time.localtime(t)
-				ymd = '{}-{}-{}'.format(y, m, d)
-				ph1[ymd] += 1
-				sh1[ymd] += util.stripb(stuff) + ", "
-				np += 1
-				if t < start:
-					start = t
-				if t > end:
-					end = t
+	try:
+		with open(ttlf) as T:
+			np = 0 # number of lines (pings) in the tagtime log that match
+			for line in T: # parse the tagtime log file
+				m = re.search(r'^(\d+)\s*(.*)$', line)
+				if not m:
+					raise ValueError("Bad line in TagTime log: " + line)
+				t = int(m.group(1))	# timestamp as parsed from the tagtime log
+				stuff = m.group(2)	# tags and comments for this line of the log
+				tags = util.strip(stuff)
+				if tagmatch(tags, crit):
+					#print('found a match for line: {}'.format(line))
+					y, m, d, *rest = time.localtime(t)
+					ymd = '{}-{}-{}'.format(y, m, d)
+					ph1[ymd] += 1
+					sh1[ymd] += util.stripb(stuff) + ", "
+					np += 1
+					if t < start:
+						start = t
+					if t > end:
+						end = t
+	except IOError:
+		raise ValueError("Can't open TagTime log file: "+ttlf)
 
 
 	# clean up $sh1: trim trailing commas, pipes, and whitespace
 	# for(sort(keys(%sh1))) { $sh1{$_} =~ s/\s*(\||\,)\s*$//; }
 	for key in sorted(sh1.keys()):
-		sh1[key] = re.sub(r'\s*(\||\,)\s*$', '', sh1[key])
-
+		sh1[key] = re.sub(r'\s*(\||,)\s*$', '', sh1[key])
 
 	#print "Processing datapoints in: ", ts($start), " - ", ts($end), "\n";
 
@@ -247,7 +252,7 @@ def main():
 	nchg  = 0  # number of updated datapoints on beeminder
 	minus = 0  # total number of pings decreased from what's on beeminder
 	plus  = 0  # total number of pings increased from what's on beeminder
-	ii    = 0
+	ii	  = 0
 	for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
 		timetuple = time.localtime(t)
 		y, m, d, *rest = timetuple
@@ -264,8 +269,9 @@ def main():
 		if not b and p1 > 0: # no such datapoint on beeminder: CREATE
 			nadd += 1
 			plus += p1
-			bh[ts] = beem.create_point(slug, value=p1*ping,
-			    timestamp=t, comment=util.splur(p1, 'ping') + ': ' + s1)
+			point = beem.create_point(slug, value=p1*ping,
+				timestamp=t, comment=util.splur(p1, 'ping') + ': ' + s1)
+			bh[ts] = point['id']
 			#print "Created: $y $m $d  ",$p1*$ping," \"$p1 pings: $s1\"\n";
 		elif p0 > 0 and p1 <= 0: # on beeminder but not in tagtime log: DELETE
 			ndel += 1
@@ -297,24 +303,24 @@ def main():
 			print("ERROR: can't tell what to do with this datapoint (old/new):\n")
 			print(ts, p0 * ping, " \"{p0} pings: {s0} [bID:{b}]\"".format(p0=p0, s0=s0, b=b))
 			print(ts, p1 * ping, " \"{p1} pings: {s1}\"\n".format(p1=p1, s1=s1))
-	with open(beef, 'a') as f: # generate the new cache file
+	with open(beef, 'w') as f: # generate the new cache file
 		for ts in sorted(ph1.keys()):
-			y, m, d = re.split(r'\-', ts)
+			y, m, d = re.split(r'-', ts)
 			p = ph1[ts]
 			v = p * ping
 			c = sh1[ts]
 			b = bh[ts]
-			out = '{y} {m} {d}	{v} "{pings}: {c} [bID:{b}]'.format(
-			y=y, m=m, d=d, v=v, pings=util.splur(p, "ping"), c=c, b=b)
+			out = '{y} {m} {d}	{v} "{pings}: {c} [bID:{b}]"\n'.format(
+				y=y, m=m, d=d, v=v, pings=util.splur(p, "ping"), c=c, b=b)
 			f.write(out)
-	nd = len(ph1.keys())	 # number of datapoints
+	nd = len(ph1)				  # number of datapoints
 	if nd != nquo + nchg + nadd:  # sanity check
 		print("\nERROR: total != nquo+nchg+nadd ({nd} != {nquo}+{nchg}+{nadd})\n".format(
 			nd=nd, nquo=nquo, nchg=nchg, nadd=nadd))
 
 	print("Datapts: {nd} (~{nquo} *{nchg} +{nadd} -{ndel}), ".format(
 		  nd=nd, nquo=nquo, nchg=nchg, nadd=nadd, ndel=ndel),
-	      "Pings: {np} (+{plus} -{minus}) ".format(np=np, plus=plus, minus=minus))
+		  "Pings: {np} (+{plus} -{minus}) ".format(np=np, plus=plus, minus=minus))
 	if isinstance(crit, str):
 		print("w/ tag", crit)
 	elif isinstance(crit, list):
