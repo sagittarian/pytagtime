@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import util
+from rand import Random
+from logger import Logger
 
 import os
 import shlex
@@ -105,6 +106,9 @@ class Settings:
     def logf(self):
         return os.path.join(self.path, "{}.log".format(self.user))
 
+    def lockf(self):
+	    return os.path.join(self.path, 'tagtime.lock')
+
     def get_edit_cmd(self, f, t):
         return [item.format(f=f, t=t) for item in self.edit_cmd]
 
@@ -113,8 +117,8 @@ class Settings:
         self._dict = import_from_path(self._srcpath,
                                       self.get_default_namespace())
 
-        self.rand = util.Random(gap=self.gap, seed=self.seed)
-        self.logger = util.Logger(logf=self.logf, linelen=self.linelen)
+        self.rand = Random(gap=self.gap, seed=self.seed)
+        self.logger = Logger(logf=self.logf, linelen=self.linelen)
         self.ed = shlex.split(self._dict['ed'])
 
     def __getattr__(self, key):
