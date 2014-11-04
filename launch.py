@@ -105,24 +105,25 @@ while nxtping < launchtime - settings.retrothresh:
 while True:
     while nxtping <= time.time():
         if nxtping < time.time() - settings.retrothresh:
-            line = util.annotime('{nxtping} afk RETRO', nxtping) + "\n"
+            line = util.annotime('{nxtping} afk RETRO'.format(nxtping), nxtping) + "\n"
             logger.log(line)
             editorflag = True
         else:
             launch(nxtping)  # this shouldn't complete till you answer
 
         ts, ln = lastln()
-        if ts != nxtpng: # in case, eg, we closed the window w/o answering.
+        if ts != nxtping: # in case, eg, we closed the window w/o answering.
             # suppose there's a ping window waiting (call it ping 1),
             # and while it's sitting there unanswered another ping
             # (ping 2) pings.  then you kill the ping 1 window.  the
             # editor will then pop up for you to fix the err ping but
             # there will be nothing in the log yet for ping 2.
             # perhaps that's ok, just thinking out loud here...
-            logger.log(annotime(
+            logger.log(util.annotime(
                 '{nxtping} err [missed ping from {pingdelta} ago]'.format(
                     nxtping=nxtping,
-                    pingdelta=datetime.timedelta(seconds=time.time()-nxtping))
+                    pingdelta=datetime.timedelta(seconds=time.time()-nxtping)),
+	            nxtping
             ))
             editor(settings.logf,
                    'TagTime Log Editor (unanswered pings logged as \"err\")')
@@ -132,7 +133,7 @@ while True:
                    "TagTime Log Editor (add tags for last ping)")
             editorflag = True
         lstping = nxtping
-        nxtping = nextping(nxtping)
+        nxtping = rand.nextping(nxtping)
         # Here's where we would add an artificial gap of $nxtping-$lstping.
     if editorflag:
         editor(settings.logf, "TagTime Log Editor (fill in your RETRO pings)")
