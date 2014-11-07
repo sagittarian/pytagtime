@@ -17,7 +17,7 @@ def clip(x, a, b):
 
 def callcmd(cmd):
 	if subprocess.call(cmd) != 0:
-		print('SYSERR:', cmd, file=sys.stderr)
+		print('SYSERR:', ' '.join(cmd), file=sys.stderr)
 		return False
 	return True
 

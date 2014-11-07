@@ -105,7 +105,7 @@ while nxtping < launchtime - settings.retrothresh:
 while True:
 	while nxtping <= time.time():
 		if nxtping < time.time() - settings.retrothresh:
-			line = util.annotime('{nxtping} afk RETRO'.format(nxtping), nxtping) + "\n"
+			line = util.annotime('{} afk RETRO'.format(nxtping), nxtping) + "\n"
 			logger.log(line)
 			editorflag = True
 		else:
