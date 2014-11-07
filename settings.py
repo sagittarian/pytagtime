@@ -13,118 +13,119 @@ SETTINGS_PATH = os.path.expanduser(os.path.join('~', SETTINGS_FILE))
 # config
 
 DEFAULTS = {
-    'user': os.environ['USER'],
+	'user': os.environ['USER'],
+	'cygwin': False,
 
-    # Pings from more than this many seconds ago get autologged with tags
-    # "afk" and "RETRO". (Pings can be overdue either because the
-    # computer was off or tagtime was waiting for you to answer a
-    # previous ping. If the computer was off, the tag "off" is also
-    # added.)
-    'retrothresh': 60,
+	# Pings from more than this many seconds ago get autologged with tags
+	# "afk" and "RETRO". (Pings can be overdue either because the
+	# computer was off or tagtime was waiting for you to answer a
+	# previous ping. If the computer was off, the tag "off" is also
+	# added.)
+	'retrothresh': 60,
 
-    'gap': 45*60,     # Average number of seconds between pings
-                      # (eg, 60*60 = 1 hour).
+	'gap': 45*60,	  # Average number of seconds between pings
+					  # (eg, 60*60 = 1 hour).
 
-    'seed': 666,      # For pings not in sync with others,
-                      # change this (NB: > 0).
+	'seed': 666,	  # For pings not in sync with others,
+					  # change this (NB: > 0).
 
-    'catchup': False, # Whether it beeps for old pings, ie, should it beep
-                      # a bunch of times in a row when the computer wakes
-                      # from sleep.
+	'catchup': False, # Whether it beeps for old pings, ie, should it beep
+					  # a bunch of times in a row when the computer wakes
+					  # from sleep.
 
-    'linelen': 79,    # Try to keep log lines at most this long.
+	'linelen': 79,	  # Try to keep log lines at most this long.
 
-    'enforcenums': False,  # Whether it forces you to include a number in your
-                           # ping response (include tag non or nonXX where XX
-                           # is day of month to override).
-                           # This is for task editor integration.
+	'enforcenums': False,  # Whether it forces you to include a number in your
+						   # ping response (include tag non or nonXX where XX
+						   # is day of month to override).
+						   # This is for task editor integration.
 
-    # System command that will play a sound for pings.
-    # Often "play" or "playsound" on Linux, or "afplay" on Mac osx.
-    # 'playsound': "afplay ${path}sound/blip-twang.wav",
-    # 'playsound': "echo -e '\a'", # this is the default if $playsound not defined.
-    # 'playsound': None,  # makes tagtime stay quiet.
-    'playsound': "echo -e '\a'",
-    'quiet': False,
+	# System command that will play a sound for pings.
+	# Often "play" or "playsound" on Linux, or "afplay" on Mac osx.
+	# 'playsound': "afplay ${path}sound/blip-twang.wav",
+	# 'playsound': "echo -e '\a'", # this is the default if $playsound not defined.
+	# 'playsound': None,  # makes tagtime stay quiet.
+	'playsound': "echo -e '\a'",
+	'quiet': False,
 
-    'auth_token': None,
+	'auth_token': None,
 
-    'beeminder': {}
+	'beeminder': {}
 }
 
 def import_from_path(path, namespace=None):
-    globals = {} if namespace is None else namespace
-    with open(path, 'r') as f:
-        contents = f.read()
-    exec(contents, globals)
-    return globals
+	globals = {} if namespace is None else namespace
+	with open(path, 'r') as f:
+		contents = f.read()
+	exec(contents, globals)
+	return globals
 
 def default_property(func):
-    name = func.__name__
-    def attr(self):
-        if name in self._dict:
-            return self._dict[name]
-        return func(self)
-    return property(attr)
+	name = func.__name__
+	def attr(self):
+		if name in self._dict:
+			return self._dict[name]
+		return func(self)
+	return property(attr)
 
 class Settings:
 
-    @staticmethod
-    def get_default_namespace():
-        namespace = dict(DEFAULTS)
+	@staticmethod
+	def get_default_namespace():
+		namespace = dict(DEFAULTS)
 
-        path = os.path.abspath(os.path.dirname(__file__))
-        xt = subprocess.getoutput('which xterm')
-        ed = subprocess.getoutput('which nano')
+		path = os.path.abspath(os.path.dirname(__file__))
+		xt = subprocess.getoutput('which xterm')
+		ed = subprocess.getoutput('which nano')
 
-        namespace.update(path=path, xt=xt, ed=ed)
+		namespace.update(path=path, xt=xt, ed=ed)
 
-        return namespace
+		return namespace
 
-    def get_xt_cmd(self, t, *args):
-        # if 'xt_cmd' in self._dict:
-        #     return shlex.split(self._dict['xt_cmd'])
+	def get_xt_cmd(self, t, *args):
+		# if 'xt_cmd' in self._dict:
+		#	  return shlex.split(self._dict['xt_cmd'])
 
-        result = [self.xt, '-T', t, '-fg', 'white', '-bg', 'red',
-                  '-cr', 'MidnightBlue', '-bc', '-rw', '-e']
-        result.extend(args)
-        return result
+		result = [self.xt, '-T', t, '-fg', 'white', '-bg', 'red',
+				  '-cr', 'MidnightBlue', '-bc', '-rw', '-e']
+		result.extend(args)
+		return result
 
-    @property
-    def playsound(self):
-        return (shlex.split(self._dict['playsound'])
-                if 'playsound' in self._dict else None)
+	@property
+	def playsound(self):
+		return (shlex.split(self._dict['playsound'])
+				if 'playsound' in self._dict else None)
 
-    @property
-    def edit_cmd(self):
-        if 'edit_cmd' in self._dict:
-            return shlex.split(self._dict['edit_cmd'])
+	@property
+	def edit_cmd(self):
+		if 'edit_cmd' in self._dict:
+			return shlex.split(self._dict['edit_cmd'])
 
-        return self.get_xt_cmd('{t}', *(self.ed + ['{f}']))
+		return self.get_xt_cmd('{t}', *(self.ed + ['{f}']))
 
-    @default_property
-    def logf(self):
-        return os.path.join(self.path, "{}.log".format(self.user))
+	@default_property
+	def logf(self):
+		return os.path.join(self.path, "{}.log".format(self.user))
 
-    def lockf(self):
-	    return os.path.join(self.path, 'tagtime.lock')
+	def lockf(self):
+		return os.path.join(self.path, 'tagtime.lock')
 
-    def get_edit_cmd(self, f, t):
-        return [item.format(f=f, t=t) for item in self.edit_cmd]
+	def get_edit_cmd(self, f, t):
+		return [item.format(f=f, t=t) for item in self.edit_cmd]
 
-    def __init__(self, srcpath=SETTINGS_PATH, defaults=DEFAULTS):
-        self._srcpath = srcpath
-        self._dict = import_from_path(self._srcpath,
-                                      self.get_default_namespace())
+	def __init__(self, srcpath=SETTINGS_PATH, defaults=DEFAULTS):
+		self._srcpath = srcpath
+		self._dict = import_from_path(self._srcpath,
+									  self.get_default_namespace())
 
-        self.rand = Random(gap=self.gap, seed=self.seed)
-        self.logger = Logger(logf=self.logf, linelen=self.linelen)
-        self.ed = shlex.split(self._dict['ed'])
+		self.rand = Random(gap=self.gap, seed=self.seed)
+		self.logger = Logger(logf=self.logf, linelen=self.linelen)
+		self.ed = shlex.split(self._dict['ed'])
 
-    def __getattr__(self, key):
-        if key and key[0] != '_' and key in self._dict:
-            return self._dict[key]
-        raise AttributeError('no such attribute {}'.format(key))
+	def __getattr__(self, key):
+		if key and key[0] != '_' and key in self._dict:
+			return self._dict[key]
+		raise AttributeError('no such attribute {}'.format(key))
 
 if __name__ != '__main__':
-    settings = Settings()
+	settings = Settings()

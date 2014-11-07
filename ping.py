@@ -7,11 +7,43 @@
 # can drag the slices around to change the order so similar things are next to
 # each other and it remembers that order for next time! That's gonna rock.
 
-import settings
+from settings import settings
 import util
+import ansi
 
+import re
 import time
 import sys
+
+logger = settings.logger
+
+eflag = 0
+
+# Send pings to the given beeminder goal, e.g. passing "alice/foo" sends
+# appropriate (as defined in .tagtimerc) pings to bmndr.com/alice/foo
+def bm(s):
+	cmd = [os.path.join(settings.path, "beeminder.py"), settings.logf, s]
+	if not util.callcmd(cmd):
+		eflag += 1
+
+# Return what the user was last doing by extracting it from their logfile.
+# Timestamps and comments are removed.
+# On error, throws an exception.
+def get_last_doing():
+	with open(settings.logf, 'r') as f:
+		last = list(f)[-1]
+	respm = re.search(r'''
+	  ^
+	  \d+		 # Timestamp
+	  \s+		 # Spaces after timestamp
+	  (.*)		 # Om nom nom
+	''', last, re.X)
+
+	if not respm:
+		print("ERROR: Failed to find any tags for ditto function. "
+			  "Last line in TagTime log:\n", last, file=sys.stderr)
+		sys.exit(1)
+	return util.strip(respm.group(1)).strip()  # remove comments and timestamps
 
 pingtime = time.time()
 autotags = ''
@@ -24,7 +56,7 @@ eflag = 0 # if any problems then prompt before exiting
 # if not, then this must not have been called by launch.py so tag as UNSCHED.
 
 if len(sys.argv) > 1:
-	t = sys.argv[1]
+	t = int(sys.argv[1])
 else:
 	autotags += " UNSCHED"
 	t = time.time()
@@ -32,17 +64,17 @@ else:
 ## Can't lock the same lockfile here since launch.pl will have the lock!
 ## This script may want to lock a separate lock file, just in case multiple
 ## instances are invoked, but launch.pl will only launch one at a time.
-##lockb();  # wait till we can get the lock.
+##lockb();	# wait till we can get the lock.
 
 if pingtime - t > 9:
 	print(util.divider(''))
-	print(divider(" WARNING "*8))
+	print(util.divider(" WARNING "*8))
 	print(util.divider(''))
 	print("This popup is", pingtime - t, "seconds late.")
 	print('Either you were answering a previous ping when '
-	      'this tried to pop up, or you just started the '
-	      'tagtime daemon (tagtimed.py), '
-	      'or your computer\'s extremely sluggish.')
+		  'this tried to pop up, or you just started the '
+		  'tagtime daemon (tagtimed.py), '
+		  'or your computer\'s extremely sluggish.')
 	print(util.divider(''))
 
 # XXX tasks
@@ -55,142 +87,104 @@ if pingtime - t > 9:
 ## maybe an optional parameter to the function that says whether to print the
 ## tasks to stdout as you encounter them.
 # if(-e $tskf) {  # show pending tasks
-#   if(open(F, "<$tskf")) {
-#     while(<F>) {
-#       if(/^\-{4,}/ || /^x\s/i) { print; last; }
-#       if(/^(\d+)\s+\S/) {
-#         print;
-#         $tags{$1} = gettags($_);  # hash mapping task num to tags string
-#       } else { print; }
-#     }
-#     close(F);
-#   } else {
-#     print "ERROR: Can't read task file ($tskf)\n";
-#     $eflag++;
-#   }
-#   print "\n";
+#	if(open(F, "<$tskf")) {
+#	  while(<F>) {
+#		if(/^\-{4,}/ || /^x\s/i) { print; last; }
+#		if(/^(\d+)\s+\S/) {
+#		  print;
+#		  $tags{$1} = gettags($_);	# hash mapping task num to tags string
+#		} else { print; }
+#	  }
+#	  close(F);
+#	} else {
+#	  print "ERROR: Can't read task file ($tskf)\n";
+#	  $eflag++;
+#	}
+#	print "\n";
 # }
 
-s, m, h, d, *rest = time.localtime(t)
-# my($s,$m,$h,$d) = localtime($t);
-# $s = dd($s); $m = dd($m); $h = dd($h); $d = dd($d);
+#s, m, h, d, *rest = time.localtime(t)
+y, m, d, h, m, s, *rest = time.localtime(t)
+s = util.dd(s)
+m = util.dd(m)
+h = util.dd(h)
+d = util.dd(d)
 
+print("It's tag time!  What are you doing RIGHT NOW ({}:{}:{})?".format(h, m, s))
 
-# print "It's tag time!  What are you doing RIGHT NOW ($h:$m:$s)?\n";
+# Get what the user was last doing. In the case this fails, set eflag and
+# print the reason why.
 
-# # Get what the user was last doing. In the case this fails, set $eflag and
-# # print the reason why.
+try:
+	last_doing = get_last_doing()
+except Exception as e:
+	last_doing = ''
+	eflag += 1
+	print('ERROR:', e, file=sys.stderr)
+else:
+	last_doing = last_doing.strip()
 
-# my $last_doing = eval { get_last_doing() };
-# $last_doing = trim($last_doing);
-# if($@) { $eflag++; warn "ERROR: $@" }
+ansi_last_doing = last_doing
+ansi_last_doing = ansi.cyan + ansi.bold + last_doing + ansi.reset
 
-# my $ansi_last_doing = $last_doing;
-
-# if($INC{'Term/ANSIColor.pm'}) {
-#   # Yay! We can do fancy formatting
-#   $ansi_last_doing = CYAN() . BOLD() . $last_doing . RESET();
-# }
-
-# print qq{Ditto (") to repeat prev tags: $ansi_last_doing\n\n};
+print('Ditto (") to repeat prev tags: {}\n'.format(ansi_last_doing))
 
 # my($resp, $tagstr, $comments, $a);
 # do {
-#   use strict;
-#   use warnings;
+#	use strict;
+#	use warnings;
 
-#   our (%tags, $t);
+#	our (%tags, $t);
+while True:
+	resp = input().strip()
+	if resp == '"':
+		# Responses for lazy people. A response string consisting of only
+		# a pair of double-quotes means "ditto", and acts as if we entered
+		# the last thing that was in our TagTime log file.
 
-#   $resp = <STDIN>;
+		resp = last_doing
+#	# refetch the task numbers from task file; they may have changed.
+#	if(-e $tskf) {
+#	  if(open(F, "<$tskf")) {
+#		%tags = ();	 # empty the hash first.
+#		while(<F>) {
+#		  if(/^\-{4,}/ || /^x\s/i) { last; }
+#		  if(/^(\d+)\s+\S/) { $tags{$1} = gettags($_); }
+#		}
+#		close(F);
+#	  } else {
+#		print "ERROR: Can't read task file ($tskf) again\n";
+#		$eflag++;
+#	  }
+#	}
+# XXX task file
 
-#   if ($resp =~ /^"\s*$/) {
-#     # Responses for lazy people. A response string consisting of only
-#     # a pair of double-quotes means "ditto", and acts as if we entered
-#     # the last thing that was in our TagTime log file.
-
-#     $resp = $last_doing;
-#   }
-
-#   # refetch the task numbers from task file; they may have changed.
-#   if(-e $tskf) {
-#     if(open(F, "<$tskf")) {
-#       %tags = ();  # empty the hash first.
-#       while(<F>) {
-#         if(/^\-{4,}/ || /^x\s/i) { last; }
-#         if(/^(\d+)\s+\S/) { $tags{$1} = gettags($_); }
-#       }
-#       close(F);
-#     } else {
-#       print "ERROR: Can't read task file ($tskf) again\n";
-#       $eflag++;
-#     }
-#   }
-
-#   $tagstr = trim(strip($resp));
-#   $comments = trim(stripc($resp));
-#   $tagstr =~ s/\b(\d+)\b/($tags{$1} eq "" ? "$1" : "$1 ").$tags{$1}/eg;
-#   $tagstr =~ s/\b(\d+)\b/tsk $1/;
-#   $tagstr .= $autotags;
-#   $tagstr =~ s/\s+/\ /g;
-#   $a = annotime("$t $tagstr $comments", $t)."\n";
+	tagstr = util.strip(resp).strip()
+	comments = util.stripc(resp).strip()
+	#tagstr = re.sub(r'\b(\d+)\b', lambda m)
+	#$tagstr =~ s//($tags{$1} eq "" ? "$1" : "$1 ").$tags{$1}/eg;
+	#$tagstr =~ s/\b(\d+)\b/tsk $1/;
+	tagstr += autotags
+	tagstr = re.sub(r'\s+', ' ', tagstr)
+	a = util.annotime("{} {} {}".format(t, tagstr, comments), t)
+	if True or not tagstr or not enforcenums or re.search(r'\b(\d+|non|afk)\b', tagstr) and enforcenonon or not re.search(r'/\bnon\b/', tagstr):
+		#XXX
+		break
 # } while($tagstr ne "" &&
-#         ($enforcenums  && ($tagstr !~ /\b(\d+|non|afk)\b/) ||
-#          $enforcenonon && ($tagstr =~ /\bnon\b/)));
-# print $a;
-# slog($a);
+#		  ($enforcenums	 && ($tagstr !~ /\b(\d+|non|afk)\b/) ||
+#		   $enforcenonon && ($tagstr =~ /\bnon\b/)));
+print(a)
+logger.log(a)
 
-# # Send your TagTime log to Beeminder if user has %beeminder hash non-empty.
-# #   (maybe should do this after retropings too but launch.pl would do that).
-# if((%beeminder || @beeminder) && $resp !~ /^\s*$/) {
-#   # We could show historical stats on the tags for the current ping here.
-#   print divider(" sending your tagtime data to beeminder "), "\n";
-#   if(@beeminder) {  # for backward compatibility
-#     for(@beeminder) { print "$_: "; @tmp = split(/\s+/, $_); bm($tmp[0]); }
-#   } else {
-#     for(keys(%beeminder)) { print "$_: "; bm($_); }
-#   }
-#   if($eflag) {
-#     print splur($eflag,"error"), ", press enter to dismiss...";
-#     my $tmp = <STDIN>;
-#   }
-# }
+# Send your TagTime log to Beeminder
+#	(maybe should do this after retropings too but launch.pl would do that).
+if settings.beeminder and resp:
+	print(util.divider(" sending your tagtime data to beeminder "))
+	for key in settings.beeminder:
+		print(key)
+		bm(key)
+	if eflag:
+		print('{}, press enter to dismiss...'.format(util.splur(eflag, 'error')))
+		tmp = input()
 
-# # Send pings to the given beeminder goal, e.g. passing "alice/foo" sends
-# # appropriate (as defined in .tagtimerc) pings to bmndr.com/alice/foo
-# sub bm { my($s) = @_;
-#   $cmd = "${path}beeminder.pl ${path}$usr.log $s";
-#   if(system($cmd) != 0) {
-#     print "ERROR running command: beeminder.pl $usr.log $s\n";
-#     $eflag++;
-#   }
-# }
-
-# # Return what the user was last doing by extracting it from their logfile.
-# # Timestamps and comments are removed.
-# # On error, throws an exception. (You can catch this with Try::Tiny or eval)
-# sub get_last_doing {
-#   use strict;
-#   use warnings;
-#   use Tie::File;  # For people too lazy to find the last line of a file. :)
-
-#   our $logf;
-
-#   tie(my @loglines, 'Tie::File', $logf) or die "Can't open $logf for ditto function: $!";
-
-#   my $last = $loglines[-1];
-
-#   my ($resp) = $last =~ m{
-#     ^
-#     \d+        # Timestamp
-#     \s+        # Spaces after timestamp
-#     (.*)       # Om nom nom
-#   }x;
-
-#   if(not $resp) {
-#     die "ERROR: Failed to find any tags for ditto function. " .
-#         "Last line in TagTime log:\n" . $last;
-#   }
-
-#   return strip($resp);   # remove comments and timestamps
-# }
 

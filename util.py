@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 
+from settings import settings
+
 linelen = 79 # XXX put this in settings
 
 def clip(x, a, b):
@@ -16,6 +18,8 @@ def clip(x, a, b):
 def callcmd(cmd):
 	if subprocess.call(cmd) != 0:
 		print('SYSERR:', cmd, file=sys.stderr)
+		return False
+	return True
 
 def strip(s):
 	'''Strips out stuff in parens and brackets;
@@ -47,7 +51,7 @@ def stripc(s):
 		'(': ')',
 		'[': ']'
 	}
-	reverse_pairs = {pairs[val]: key for key in pairs}
+	reverse_pairs = {pairs[key]: key for key in pairs}
 
 	result = []
 	openers = []
@@ -64,6 +68,7 @@ def stripc(s):
 				# result when the last parens is closed
 			# else unmatched closer, ignore
 		i += 1
+	return(''.join(result))
 
 	# Here is the original perl implementation
 	# sub stripc {
@@ -158,7 +163,7 @@ def unlock():
 	if (settings.cygwin): # stupid windows
 		cmd = ["/bin/rm",  "-f", "$lockf"]
 		util.callcmd(cmd)
-	else: # nice unix
+	elif hasattr(settings, 'lf'): # nice unix
 		settings.lf.close()
 
 def splur(n, noun):
