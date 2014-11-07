@@ -48,8 +48,7 @@ DEFAULTS = {
 	'playsound': "echo -e '\a'",
 	'quiet': False,
 
-	'auth_token': None,
-
+	'beemauth': None,
 	'beeminder': {}
 }
 

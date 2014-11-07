@@ -22,13 +22,13 @@ import time
 
 def usage():
 	print("Usage: ./beeminder.py tagtimelog user/slug", file=sys.stderr)
-	print("auth_token must be defined in .pytagtimerc", file=sys.stderr)
+	print("beemauth must be defined in .pytagtimerc", file=sys.stderr)
 	sys.exit(1)
 
 def main():
 	ping = hours_per_ping = settings.gap / 3600
 
-	if len(sys.argv) != 3 or settings.auth_token is None:
+	if len(sys.argv) != 3 or settings.beemauth is None:
 		usage()
 	ttlf = sys.argv[1]	   # tagtime log filename
 	usrslug = sys.argv[2]  # like alice/weight
@@ -37,7 +37,7 @@ def main():
 		usage()
 	usr, slug = m.groups();
 
-	beem = beemapi.Beeminder(settings.auth_token, usr, dryrun=True, debug=True)
+	beem = beemapi.Beeminder(settings.beemauth, usr, dryrun=True, debug=True)
 
 	# beef = bee file (cache of data on bmndr)
 	beef = os.path.join(settings.path, '{}+{}.bee'.format(usr, slug))
