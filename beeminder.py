@@ -37,7 +37,7 @@ def main():
 		usage()
 	usr, slug = m.groups();
 
-	beem = beemapi.Beeminder(settings.beemauth, usr, dryrun=True, debug=True)
+	beem = beemapi.Beeminder(settings.beemauth, usr)
 
 	# beef = bee file (cache of data on bmndr)
 	beef = os.path.join(settings.path, '{}+{}.bee'.format(usr, slug))
@@ -222,12 +222,13 @@ def main():
 				if not m:
 					raise ValueError("Bad line in TagTime log: " + line)
 				t = int(m.group(1))	# timestamp as parsed from the tagtime log
+				ts = time.localtime(t)
 				stuff = m.group(2)	# tags and comments for this line of the log
 				tags = util.strip(stuff)
-				if tagmatch(tags, crit):
+				if tagmatch(tags, crit, ts):
 					#print('found a match for line: {}'.format(line))
-					y, m, d, *rest = time.localtime(t)
-					ymd = '{}-{}-{}'.format(y, m, d)
+					#y, m, d, *rest = time.localtime(t)
+					ymd = time.strftime('%Y-%m-%d', ts)
 					ph1[ymd] += 1
 					sh1[ymd] += util.stripb(stuff) + ", "
 					np += 1
@@ -333,7 +334,7 @@ def main():
 		print("(unknown-criterion: {crit})".format(crit=crit))
 
 
-def tagmatch(tags, crit):
+def tagmatch(tags, crit, ts):
 	'''Whether the given string of space-separated tags matches the given
 	criterion.'''
 	if isinstance(crit, str):
@@ -345,7 +346,7 @@ def tagmatch(tags, crit):
 	  else:
 		  return False
 	elif callable(crit):
-		return crit(tags)
+		return crit(tags, ts)
 	elif hasattr(crit, 'search'):
 		return crit.search(tags)
 	else:

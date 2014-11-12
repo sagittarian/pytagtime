@@ -107,10 +107,7 @@ while True:
 
     if nxtping <= now:
         if settings.catchup or nxtping > now - settings.retrothresh:
-            if settings.playsound is None:
-                print('\a', file=sys.stderr)
-            else:
-                util.callcmd(settings.playsound)
+	        util.playsound()
 
         # invokes popup for this ping plus additional popups if there were more
         #   pings while answering this one:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from rand import Random
+from rand import ExpRand
 from logger import Logger
 
 import os
@@ -93,7 +93,7 @@ class Settings:
 	@property
 	def playsound(self):
 		return (shlex.split(self._dict['playsound'])
-				if 'playsound' in self._dict else None)
+				if self._dict.get('playsound') else None)
 
 	@property
 	def edit_cmd(self):
@@ -117,7 +117,7 @@ class Settings:
 		self._dict = import_from_path(self._srcpath,
 									  self.get_default_namespace())
 
-		self.rand = Random(gap=self.gap, seed=self.seed)
+		self.rand = ExpRand(seed=self.seed, gap=self.gap)
 		self.logger = Logger(logf=self.logf, linelen=self.linelen)
 		self.ed = shlex.split(self._dict['ed'])
 

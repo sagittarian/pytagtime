@@ -38,11 +38,7 @@ def launch(t):
 	hour, min, sec = (util.dd(i) for i in lt[3:6]) # XXX ugly constants
 	#os.environ['DISPLAY'] = ':0.0' # have to set this explicitly if
 									# invoked by cron.
-	if not settings.quiet and settings.playsound is not None:
-		if not settings.playsound:
-			print('\a', file=sys.stderr)
-		else:
-			util.callcmd(settings.playsound)
+	util.playsound()
 	pingpath = os.path.join(settings.path, 'ping.py')
 	cmd = settings.get_xt_cmd(
 		'TagTime {hour}:{min}:{sec}'.format(hour=hour, min=min, sec=sec),

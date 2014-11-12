@@ -51,7 +51,7 @@ def stripc(s):
 		'(': ')',
 		'[': ']'
 	}
-	reverse_pairs = {pairs[key]: key for key in pairs}
+	reverse_pairs = {val: key for (key, val) in pairs.items()}
 
 	result = []
 	openers = []
@@ -124,7 +124,7 @@ def lockb():
 			time.sleep(30)
 			ok_flag = False
 		cmd = ["/usr/bin/touch", settings.lockf]
-		util.callcmd(cmd)
+		callcmd(cmd)
 	else: # nice unix (including mac)
 		lf = settings.lf = open(lockf, 'r')
 		try:
@@ -147,7 +147,7 @@ def lockn():
 	if settings.cygwin:	 # stupid windows
 		if os.path.exists(settings.lockf): return False
 		cmd = ["/usr/bin/touch", lockf]
-		util.callcmd(cmd)
+		callcmd(cmd)
 	else: # nice unix (including mac)
 		lf = settings.lf = open(settings.lockf, 'w')
 		# Don't wait if we can't get the lock, the next cron'd version'll get it
@@ -162,7 +162,7 @@ def unlock():
 	'''Release the lock.'''
 	if (settings.cygwin): # stupid windows
 		cmd = ["/bin/rm",  "-f", "$lockf"]
-		util.callcmd(cmd)
+		callcmd(cmd)
 	elif hasattr(settings, 'lf'): # nice unix
 		settings.lf.close()
 
@@ -340,6 +340,12 @@ def pd(s):
 
 	tm = (year, month, day, hour, minute, second, 0, 0, -1)
 	return time.mktime(tm)
+
+
+def playsound():
+	if not settings.quiet and settings.playsound:
+		callcmd(settings.playsound)
+
 
 
 ## SCRATCH AREA:
