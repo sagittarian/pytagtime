@@ -22,28 +22,30 @@ eflag = 0  # Error flag
 # Send pings to the given beeminder goal, e.g. passing "alice/foo" sends
 # appropriate (as defined in .tagtimerc) pings to bmndr.com/alice/foo
 def bm(s):
-	cmd = [os.path.join(settings.path, "beeminder.py"), settings.logf, s]
-	if not util.callcmd(cmd):
-		eflag += 1
+    cmd = [os.path.join(settings.path, "beeminder.py"), settings.logf, s]
+    if not util.callcmd(cmd):
+        eflag += 1
+
 
 # Return what the user was last doing by extracting it from their logfile.
 # Timestamps and comments are removed.
 # On error, throws an exception.
 def get_last_doing():
-	with open(settings.logf, 'r') as f:
-		last = list(f)[-1]
-	respm = re.search(r'''
-	  ^
-	  \d+		 # Timestamp
-	  \s+		 # Spaces after timestamp
-	  (.*)		 # Om nom nom
-	''', last, re.X)
+    with open(settings.logf, 'r') as f:
+        last = list(f)[-1]
+    respm = re.search(r'''
+^
+    \d+		 # Timestamp
+    \s+		 # Spaces after timestamp
+    (.*)		 # Om nom nom
+                      ''', last, re.X)
 
-	if not respm:
-		print("ERROR: Failed to find any tags for ditto function. "
-			  "Last line in TagTime log:\n", last, file=sys.stderr)
-		sys.exit(1)
-	return util.strip(respm.group(1)).strip()  # remove comments and timestamps
+    if not respm:
+        print("ERROR: Failed to find any tags for ditto function. "
+              "Last line in TagTime log:\n", last, file=sys.stderr)
+        sys.exit(1)
+    return util.strip(respm.group(1)).strip()  # remove comments and timestamps
+
 
 pingtime = time.time()
 autotags = ''
@@ -53,12 +55,11 @@ eflag = 0 # if any problems then prompt before exiting
 
 # if passed a parameter, take that to be the timestamp for this ping.
 # if not, then this must not have been called by launch.py so tag as UNSCHED.
-
 if len(sys.argv) > 1:
-	t = int(sys.argv[1])
+    t = int(sys.argv[1])
 else:
-	autotags += " UNSCHED"
-	t = time.time()
+    autotags += " UNSCHED"
+    t = time.time()
 
 # Can't lock the same lockfile here since launch.pl will have the lock!
 # This script may want to lock a separate lock file, just in case multiple
@@ -66,15 +67,15 @@ else:
 # lockb();  wait till we can get the lock.
 
 if pingtime - t > 9:
-	print(util.divider(''))
-	print(util.divider(" WARNING "*8))
-	print(util.divider(''))
-	print("This popup is", pingtime - t, "seconds late.")
-	print('Either you were answering a previous ping when '
-		  'this tried to pop up, or you just started the '
-		  'tagtime daemon (tagtimed.py), '
-		  'or your computer\'s extremely sluggish.')
-	print(util.divider(''))
+    print(util.divider(''))
+    print(util.divider(" WARNING "*8))
+    print(util.divider(''))
+    print("This popup is", pingtime - t, "seconds late.")
+    print('Either you were answering a previous ping when '
+          'this tried to pop up, or you just started the '
+          'tagtime daemon (tagtimed.py), '
+          'or your computer\'s extremely sluggish.')
+    print(util.divider(''))
 
 # XXX tasks
 # TODO
@@ -118,13 +119,13 @@ print("It's tag time!  What are you doing RIGHT NOW ({}:{}:{})?".format(h, m, s)
 # print the reason why.
 
 try:
-	last_doing = get_last_doing()
+    last_doing = get_last_doing()
 except Exception as e:
-	last_doing = ''
-	eflag += 1
-	print('ERROR:', e, file=sys.stderr)
+    last_doing = ''
+    eflag += 1
+    print('ERROR:', e, file=sys.stderr)
 else:
-	last_doing = last_doing.strip()
+    last_doing = last_doing.strip()
 
 ansi_last_doing = last_doing
 ansi_last_doing = ansi.cyan + ansi.bold + last_doing + ansi.reset
@@ -138,56 +139,54 @@ print('Ditto (") to repeat prev tags: {}\n'.format(ansi_last_doing))
 
 #	our (%tags, $t);
 while True:
-	resp = input().strip()
-	if resp == '"':
-		# Responses for lazy people. A response string consisting of only
-		# a pair of double-quotes means "ditto", and acts as if we entered
-		# the last thing that was in our TagTime log file.
+    resp = input().strip()
+    if resp == '"':
+        # Responses for lazy people. A response string consisting of only
+        # a pair of double-quotes means "ditto", and acts as if we entered
+        # the last thing that was in our TagTime log file.
+        resp = last_doing
 
-		resp = last_doing
-#	# refetch the task numbers from task file; they may have changed.
-#	if(-e $tskf) {
-#	  if(open(F, "<$tskf")) {
-#		%tags = ();	 # empty the hash first.
-#		while(<F>) {
-#		  if(/^\-{4,}/ || /^x\s/i) { last; }
-#		  if(/^(\d+)\s+\S/) { $tags{$1} = gettags($_); }
-#		}
-#		close(F);
-#	  } else {
-#		print "ERROR: Can't read task file ($tskf) again\n";
-#		$eflag++;
-#	  }
-#	}
-# XXX task file
+    # TODO
+    #	# refetch the task numbers from task file; they may have changed.
+    #	if(-e $tskf) {
+    #	  if(open(F, "<$tskf")) {
+    #		%tags = ();	 # empty the hash first.
+    #		while(<F>) {
+    #		  if(/^\-{4,}/ || /^x\s/i) { last; }
+    #		  if(/^(\d+)\s+\S/) { $tags{$1} = gettags($_); }
+    #		}
+    #		close(F);
+    #	  } else {
+    #		print "ERROR: Can't read task file ($tskf) again\n";
+    #		$eflag++;
+    #	  }
+    #	}
+    # XXX task file
 
-	tagstr = util.strip(resp).strip()
-	comments = util.stripc(resp).strip()
-	#tagstr = re.sub(r'\b(\d+)\b', lambda m)
-	#$tagstr =~ s//($tags{$1} eq "" ? "$1" : "$1 ").$tags{$1}/eg;
-	#$tagstr =~ s/\b(\d+)\b/tsk $1/;
-	tagstr += autotags
-	tagstr = re.sub(r'\s+', ' ', tagstr)
-	a = util.annotime("{} {} {}".format(t, tagstr, comments), t)
-# } while($tagstr ne "" &&
-#		  ($enforcenums	 && ($tagstr !~ /\b(\d+|non|afk)\b/) ||
-#		   $enforcenonon && ($tagstr =~ /\bnon\b/)));
-print(a)
-logger.log(a)
+    tagstr = util.strip(resp).strip()
+    comments = util.stripc(resp).strip()
+    #tagstr = re.sub(r'\b(\d+)\b', lambda m)
+    #$tagstr =~ s//($tags{$1} eq "" ? "$1" : "$1 ").$tags{$1}/eg;
+    #$tagstr =~ s/\b(\d+)\b/tsk $1/;
+    tagstr += autotags
+    tagstr = re.sub(r'\s+', ' ', tagstr)
+    a = util.annotime("{} {} {}".format(t, tagstr, comments), t)
     if (not tagstr) or\
         (not settings.enforcenums or re.search(r'\b(\d+|non|afk)\b', tagstr)):
         # if enforcenums is enabled, requires a digit or "non" or "afk" to end
         break
+    print(a)
+    logger.log(a)
 
 # Send your TagTime log to Beeminder
-#	(maybe should do this after retropings too but launch.pl would do that).
+#	(maybe should do this after retro pings too but launch.pl would do that).
 if settings.beeminder and resp:
-	print(util.divider(" sending your tagtime data to beeminder "))
-	for key in settings.beeminder:
-		print(key)
-		bm(key)
-	if eflag:
-		print('{}, press enter to dismiss...'.format(util.splur(eflag, 'error')))
-		tmp = input()
+    print(util.divider(" sending your tagtime data to beeminder "))
+    for key in settings.beeminder:
+        print(key)
+        bm(key)
+    if eflag:
+        print('{}, press enter to dismiss...'.format(util.splur(eflag, 'error')))
+        tmp = input()
 
 

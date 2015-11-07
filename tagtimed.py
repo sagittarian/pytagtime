@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 '''
-  TagTime daemon: this figures out from scratch when to beep and does so,
-    continuously, even when the previous ping is still unanswered.
-  After each ping it also runs launch.pl (with the 'quiet' arg since
-    this is already doing the beeping) which launches popups or an editor
-    for any overdue pings.
-  Might be nice to watch ~/.tagtimerc (aka settings.pl) for changes a la
-    watching.pl so that we don't have to restart this daemon when settings
-    change. (does it suffice to just re-require it?)
+TagTime daemon: this figures out from scratch when to beep and does so,
+continuously, even when the previous ping is still unanswered.
+After each ping it also runs launch.pl (with the 'quiet' arg since
+this is already doing the beeping) which launches popups or an editor
+for any overdue pings.
+Might be nice to watch ~/.tagtimerc (aka settings.pl) for changes a la
+watching.pl so that we don't have to restart this daemon when settings
+change. (does it suffice to just re-require it?)
 '''
 #
 #=head1 NAME
@@ -63,8 +63,6 @@
 #        die "Already running\n";    # Noisy exit otherwise.
 #    }
 #}
-#
-# XXX locking
 
 import datetime
 import os
@@ -100,7 +98,7 @@ lstping = rand.prevping(launchtime)
 nxtping = rand.nextping(lstping)
 
 if settings.cygwin:
-	util.unlock()  # on cygwin may have stray lock files around.
+    util.unlock()  # on cygwin may have stray lock files around.
 
 # Catch up on any old pings.
 cmd = os.path.join(settings.path, 'launch.py')
