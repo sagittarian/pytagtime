@@ -2,12 +2,12 @@ import math
 
 class Random:
 
-	def __init__(self, seed):
-		self.IA = 16807		 # constant used for RNG
-							 # (see p37 of Simulation by Ross)
-		self.IM = 2147483647 # constant used for RNG (2^31-1)
-		self.seed = seed	 # state of the RNG
-		self.initseed = seed
+    def __init__(self, seed):
+        self.IA = 7**5       # constant used for RNG
+                             # (see p37 of Simulation by Ross)
+        self.IM = 2**31 - 1  # constant used for RNG
+        self.seed = seed	 # state of the RNG
+        self.initseed = seed
 
 	def reset(self):
 		self.seed = self.initseed
@@ -20,10 +20,10 @@ class Random:
 		'''
 		self.seed = self.IA * self.seed % self.IM
 		return self.seed
+    def ran01(self):
+        '''Returns a U(0,1) random number.'''
+        return float(self.ran0()) / self.IM
 
-	def ran01(self):
-		'''Returns a U(0,1) random number.'''
-		return self.ran0() / self.IM
 
 	def ranx(self, x):
 		'''Move the PRNG state forward x times and return the result'''
