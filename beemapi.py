@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 '''Implementation of the Beeminder API: https://www.beeminder.com/api
    Still very incomplete.'''

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Prompt for what you're doing RIGHT NOW.
 # In the future this should show a cool pie chart that lets you click on the
