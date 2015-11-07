@@ -72,6 +72,7 @@ import shlex
 import subprocess
 import sys
 import time
+import pause
 
 from settings import settings
 
@@ -102,7 +103,9 @@ i = 1
 while True:
     # sleep till next ping but check again in at most a few seconds in
     # case computer was off (should be event-based and check upon wake).
-    time.sleep(util.clip(nxtping - time.time(), 0, 2))
+    # Use the pause library to get better precision
+    pause.until(nextping)
+    # time.sleep(util.clip(nextping - time.time(), 0, 2))
     now = time.time()
 
     if nxtping <= now:
