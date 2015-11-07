@@ -48,7 +48,6 @@ def get_last_doing():
 pingtime = time.time()
 autotags = ''
 
-# my $tskf = "$path$usr.tsk";
 
 eflag = 0 # if any problems then prompt before exiting
 
@@ -170,14 +169,15 @@ while True:
 	tagstr += autotags
 	tagstr = re.sub(r'\s+', ' ', tagstr)
 	a = util.annotime("{} {} {}".format(t, tagstr, comments), t)
-	if True or not tagstr or not enforcenums or re.search(r'\b(\d+|non|afk)\b', tagstr) and enforcenonon or not re.search(r'/\bnon\b/', tagstr):
-		#XXX
-		break
 # } while($tagstr ne "" &&
 #		  ($enforcenums	 && ($tagstr !~ /\b(\d+|non|afk)\b/) ||
 #		   $enforcenonon && ($tagstr =~ /\bnon\b/)));
 print(a)
 logger.log(a)
+    if (not tagstr) or\
+        (not settings.enforcenums or re.search(r'\b(\d+|non|afk)\b', tagstr)):
+        # if enforcenums is enabled, requires a digit or "non" or "afk" to end
+        break
 
 # Send your TagTime log to Beeminder
 #	(maybe should do this after retropings too but launch.pl would do that).
