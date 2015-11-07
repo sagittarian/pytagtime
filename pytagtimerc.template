@@ -3,6 +3,7 @@
 # NB: restart the daemon (tagtimed.py) if you change this file.
 
 # import os
+# import subprocess
 # user = os.environ['USER']			   # CHANGEME to your username
 
 # path = <path to pytagtime directory>
@@ -34,7 +35,7 @@
   #"dan/nafk": lambda tags, ts: not re.search(r'\bafk\b', tags)
   # pings tagged "workout" get added to dave/tueworkouts, but only on tuesdays:
   #"dave/tueworkouts": lambda tags, ts: (re.search(r'\bworkout\b', tags) and
-  					                     ts.tm_wday == 2)
+  #					                     ts.tm_wday == 2)
 #}
 
 # Pings from more than this many seconds ago get autologged with tags "afk" and
