@@ -34,16 +34,17 @@ def editor(f, t):
 
 # Launch the tagtime pinger for the given time (in unix time).
 def launch(t):
-	lt = time.localtime(t)
-	hour, min, sec = (util.dd(i) for i in lt[3:6]) # XXX ugly constants
-	#os.environ['DISPLAY'] = ':0.0' # have to set this explicitly if
-									# invoked by cron.
-	util.playsound()
-	pingpath = os.path.join(settings.path, 'ping.py')
-	cmd = settings.get_xt_cmd(
-		'TagTime {hour}:{min}:{sec}'.format(hour=hour, min=min, sec=sec),
-		pingpath, str(t))
-	util.callcmd(cmd)
+    lt = time.localtime(t)
+    hour, min, sec = ('{:02}'.format(i) for i in [lt.tm_hour, lt.tm_min, lt.tm_sec])
+    # os.environ['DISPLAY'] = ':0.0' # have to set this explicitly if
+    # invoked by cron.
+    util.playsound()
+    pingpath = os.path.join(settings.path, 'ping.py')
+    cmd = settings.get_xt_cmd(
+        'TagTime {hour}:{min}:{sec}'.format(hour=hour, min=min, sec=sec),
+        pingpath, str(t))
+    util.callcmd(cmd)
+
 
 def lastln():
 	'''Returns the last line in the log but as a 2-tuple
