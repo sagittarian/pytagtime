@@ -17,7 +17,7 @@ import sys
 
 logger = settings.logger
 
-eflag = 0
+eflag = 0  # Error flag
 
 # Send pings to the given beeminder goal, e.g. passing "alice/foo" sends
 # appropriate (as defined in .tagtimerc) pings to bmndr.com/alice/foo
@@ -61,10 +61,10 @@ else:
 	autotags += " UNSCHED"
 	t = time.time()
 
-## Can't lock the same lockfile here since launch.pl will have the lock!
-## This script may want to lock a separate lock file, just in case multiple
-## instances are invoked, but launch.pl will only launch one at a time.
-##lockb();	# wait till we can get the lock.
+# Can't lock the same lockfile here since launch.pl will have the lock!
+# This script may want to lock a separate lock file, just in case multiple
+# instances are invoked, but launch.pl will only launch one at a time.
+# lockb();  wait till we can get the lock.
 
 if pingtime - t > 9:
 	print(util.divider(''))
@@ -78,14 +78,17 @@ if pingtime - t > 9:
 	print(util.divider(''))
 
 # XXX tasks
-## walk through the task file, printing the active tasks and capturing the list
-## of tags for each task (capturing in a hash keyed on task number).
-## TODO: have a function that takes a reference to a tasknum->tags hash and a
-## tasknum->fulltaskline hash and populates those hashes, purging them first.
-## that way we we're not duplicating most of this walk through code. one
-## annoyance: we want to print them in the order they appear in the task file.
-## maybe an optional parameter to the function that says whether to print the
-## tasks to stdout as you encounter them.
+# TODO
+# Figure out what to do with taskfiles (as per the perl version)
+# taskfile = str(settings.path) + str(settings.user) + ".tsk"
+# walk through the task file, printing the active tasks and capturing the list
+# of tags for each task (capturing in a hash keyed on task number).
+# TODO: have a function that takes a reference to a tasknum->tags hash and a
+# tasknum->fulltaskline hash and populates those hashes, purging them first.
+# that way we we're not duplicating most of this walk through code. one
+# annoyance: we want to print them in the order they appear in the task file.
+# maybe an optional parameter to the function that says whether to print the
+# tasks to stdout as you encounter them.
 # if(-e $tskf) {  # show pending tasks
 #	if(open(F, "<$tskf")) {
 #	  while(<F>) {
