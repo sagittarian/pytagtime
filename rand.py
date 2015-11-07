@@ -44,6 +44,8 @@ class ExpRand(Random):
 
 		'''
 		return -1 * self.gap * math.log(self.ran01())
+        return max(prev + 1, round(prev + self.exprand()))
+        # Note: round1 used in the perl version has the same behavior
 
 	def nextping(self, prev):
 		'''Takes previous ping time, returns random next ping time (unixtime).
@@ -51,8 +53,6 @@ class ExpRand(Random):
 			and so should only be called once per next ping to calculate,
 			after calling prevping.
 		'''
-		# XXX round1
-		return max(prev + 1, round(prev + self.exprand()))
 
 	def prevping(self, t):
 		'''Computes the last scheduled ping time before time t.'''
