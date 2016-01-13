@@ -23,17 +23,17 @@ DEFAULTS = {
     # added.)
     'retrothresh': 60,
 
-    'gap': 45*60,	  # Average number of seconds between pings
+    'gap': 45*60,     # Average number of seconds between pings
     # (eg, 60*60 = 1 hour).
 
-    'seed': 666,	  # For pings not in sync with others,
+    'seed': 666,      # For pings not in sync with others,
     # change this (NB: > 0).
 
     'catchup': False, # Whether it beeps for old pings, ie, should it beep
     # a bunch of times in a row when the computer wakes
     # from sleep.
 
-    'linelen': 79,	  # Try to keep log lines at most this long.
+    'linelen': 79,    # Try to keep log lines at most this long.
 
     'enforcenums': False,  # Whether it forces you to include a number in your
     # ping response (include tag non or nonXX where XX
@@ -84,7 +84,7 @@ class Settings:
 
     def get_xt_cmd(self, t, *args):
         # if 'xt_cmd' in self._dict:
-        #	  return shlex.split(self._dict['xt_cmd'])
+        #     return shlex.split(self._dict['xt_cmd'])
 
         result = [self.xt, '-T', t, '-fg', 'white', '-bg', 'red',
                   '-cr', 'MidnightBlue', '-bc', '-rw', '-e']

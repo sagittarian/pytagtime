@@ -35,9 +35,9 @@ def get_last_doing():
         last = list(f)[-1]
     respm = re.search(r'''
 ^
-    \d+		 # Timestamp
-    \s+		 # Spaces after timestamp
-    (.*)		 # Om nom nom
+    \d+      # Timestamp
+    \s+      # Spaces after timestamp
+    (.*)         # Om nom nom
                       ''', last, re.X)
 
     if not respm:
@@ -90,20 +90,20 @@ if pingtime - t > 9:
 # maybe an optional parameter to the function that says whether to print the
 # tasks to stdout as you encounter them.
 # if(-e $tskf) {  # show pending tasks
-#	if(open(F, "<$tskf")) {
-#	  while(<F>) {
-#		if(/^\-{4,}/ || /^x\s/i) { print; last; }
-#		if(/^(\d+)\s+\S/) {
-#		  print;
-#		  $tags{$1} = gettags($_);	# hash mapping task num to tags string
-#		} else { print; }
-#	  }
-#	  close(F);
-#	} else {
-#	  print "ERROR: Can't read task file ($tskf)\n";
-#	  $eflag++;
-#	}
-#	print "\n";
+#   if(open(F, "<$tskf")) {
+#     while(<F>) {
+#       if(/^\-{4,}/ || /^x\s/i) { print; last; }
+#       if(/^(\d+)\s+\S/) {
+#         print;
+#         $tags{$1} = gettags($_);  # hash mapping task num to tags string
+#       } else { print; }
+#     }
+#     close(F);
+#   } else {
+#     print "ERROR: Can't read task file ($tskf)\n";
+#     $eflag++;
+#   }
+#   print "\n";
 # }
 
 #s, m, h, d, *rest = time.localtime(t)
@@ -134,10 +134,10 @@ print('Ditto (") to repeat prev tags: {}\n'.format(ansi_last_doing))
 
 # my($resp, $tagstr, $comments, $a);
 # do {
-#	use strict;
-#	use warnings;
+#   use strict;
+#   use warnings;
 
-#	our (%tags, $t);
+#   our (%tags, $t);
 while True:
     resp = input().strip()
     if resp == '"':
@@ -147,20 +147,20 @@ while True:
         resp = last_doing
 
     # TODO
-    #	# refetch the task numbers from task file; they may have changed.
-    #	if(-e $tskf) {
-    #	  if(open(F, "<$tskf")) {
-    #		%tags = ();	 # empty the hash first.
-    #		while(<F>) {
-    #		  if(/^\-{4,}/ || /^x\s/i) { last; }
-    #		  if(/^(\d+)\s+\S/) { $tags{$1} = gettags($_); }
-    #		}
-    #		close(F);
-    #	  } else {
-    #		print "ERROR: Can't read task file ($tskf) again\n";
-    #		$eflag++;
-    #	  }
-    #	}
+    #   # refetch the task numbers from task file; they may have changed.
+    #   if(-e $tskf) {
+    #     if(open(F, "<$tskf")) {
+    #       %tags = ();  # empty the hash first.
+    #       while(<F>) {
+    #         if(/^\-{4,}/ || /^x\s/i) { last; }
+    #         if(/^(\d+)\s+\S/) { $tags{$1} = gettags($_); }
+    #       }
+    #       close(F);
+    #     } else {
+    #       print "ERROR: Can't read task file ($tskf) again\n";
+    #       $eflag++;
+    #     }
+    #   }
     # XXX task file
 
     tagstr = util.strip(resp).strip()
@@ -175,11 +175,12 @@ while True:
         (not settings.enforcenums or re.search(r'\b(\d+|non|afk)\b', tagstr)):
         # if enforcenums is enabled, requires a digit or "non" or "afk" to end
         break
-    print(a)
-    logger.log(a)
+
+print(a)
+logger.log(a)
 
 # Send your TagTime log to Beeminder
-#	(maybe should do this after retro pings too but launch.pl would do that).
+#   (maybe should do this after retro pings too but launch.pl would do that).
 if settings.beeminder and resp:
     print(util.divider(" sending your tagtime data to beeminder "))
     for key in settings.beeminder:

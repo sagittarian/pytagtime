@@ -111,13 +111,13 @@ while True:
             logger.log(line)
             editorflag = True
         else:
-            launch(nxtping)	 # this shouldn't complete till you answer
+            launch(nxtping)  # this shouldn't complete till you answer
 
         ts, ln = lastln()
         if ts != nxtping:  # in case, eg, we closed the window w/o answering.
             # suppose there's a ping window waiting (call it ping 1),
             # and while it's sitting there unanswered another ping
-            # (ping 2) pings.  then you kill the ping 1 window.	 the
+            # (ping 2) pings.  then you kill the ping 1 window.  the
             # editor will then pop up for you to fix the err ping but
             # there will be nothing in the log yet for ping 2.
             # perhaps that's ok, just thinking out loud here...
@@ -168,8 +168,8 @@ util.unlock()
 # if another ping is overdue, mind the gap! (ie delay the 2nd ping so as to
 # maintain the original gap betw them (but not more than retrothresh)):
 # my $now = time();
-# my $eaten = $now - $prompt;	# subtract amount of time eaten up
-# 								  #	  answering last ping
+# my $eaten = $now - $prompt;   # subtract amount of time eaten up
+#                                 #   answering last ping
 # if ($nxtping<$now && $nxtping>=$now-$retrothresh) {
-# 	 sleep(max(0, $nxtping - max($lstping,$now-$retrothresh) - $eaten));
+#    sleep(max(0, $nxtping - max($lstping,$now-$retrothresh) - $eaten));
 # }

@@ -32,7 +32,7 @@ def main():
 
     if len(sys.argv) != 3 or settings.beemauth is None:
         usage()
-    ttlf = sys.argv[1]	   # tagtime log filename
+    ttlf = sys.argv[1]     # tagtime log filename
     usrslug = sys.argv[2]  # like alice/weight
     m = re.search(r"^(?:.*?(?:\.\/)?data\/)?([^\+\/\.]*)[\+\/]([^\.]*)", usrslug)
     if not m:
@@ -48,9 +48,9 @@ def main():
     #  print "Deprecation warning: Get your settings file in line!\n";
     #  print "Specifically, 'beeminder' should be a hash, not an arry.\n";
     #  for(@beeminder) {
-    #	 @stuff = split(/\s+/, $_); # usrslug and tags
-    #	 $us = shift(@stuff);
-    #	 $beeminder{$us} = [@stuff];
+    #    @stuff = split(/\s+/, $_); # usrslug and tags
+    #    $us = shift(@stuff);
+    #    $beeminder{$us} = [@stuff];
     #  }
     #}
 
@@ -70,8 +70,8 @@ def main():
     sh1 = defaultdict(str)
     ph0 = defaultdict(int)
     sh0 = defaultdict(str)
-    start = time.time()	  # start and end are the earliest and latest times we will
-    end	  = 0			  # need to care about when updating beeminder.
+    start = time.time()   # start and end are the earliest and latest times we will
+    end   = 0             # need to care about when updating beeminder.
     # bflag is true if we need to regenerate the beeminder cache file. reasons we'd
     # need to: 1. it doesn't exist or is empty; 2. any beeminder IDs are missing
     # from the cache file; 3. there are multiple datapoints for the same day.
@@ -82,7 +82,7 @@ def main():
     bf1 = False
     bf2 = False
     bf3 = False
-    bf4 = False	 # why bflag?
+    bf4 = False  # why bflag?
     if bflag:
         bf1 = True
 
@@ -91,17 +91,17 @@ def main():
         with open(beef, 'r') as B:
             for line in B:
                 m = re.search(r'''
-(\d+)\s+		  # year
+                (\d+)\s+		  # year
                 (\d+)\s+		  # month
                 (\d+)\s+		  # day
                 (\S+)\s+		  # value
                 "(\d+)			  # number of pings
                 (?:[^\n\"\(:]*) # currently the string " ping(s)"
-                :				  # the ": " after " pings"
-                ([^\[]*)		  # the comment string (no brackets)
-                (?:\[			  # if present,
-                bID\:([^\]]*)	  # the beeminder ID, in brackets
-                \])?			  # end bracket for "[bID:abc123]"
+                :                 # the ": " after " pings"
+                ([^\[]*)          # the comment string (no brackets)
+                (?:\[             # if present,
+                bID\:([^\]]*)     # the beeminder ID, in brackets
+                \])?              # end bracket for "[bID:abc123]"
                 \s*"
                               ''', line, re.VERBOSE)
                 # XXX if not m set an error flag and continue
@@ -143,8 +143,8 @@ def main():
         ph0 = defaultdict(int)
         sh0 = defaultdict(str)
         bh = {}
-        start = time.time()	# reset these since who knows what happened to
-        end	  = 0			# them when we calculated them from the cache file
+        start = time.time() # reset these since who knows what happened to
+        end   = 0           # them when we calculated them from the cache file
         # we decided to toss.
 
         #my $tmp = $beef;  $tmp =~ s/(?:[^\/]*\/)*//; # strip path from filename
@@ -157,7 +157,7 @@ def main():
             print("Cache file has duplicate Bmndr IDs; recreating... ")
         elif bf4:
             print("Couldn't read cache file; recreating... ")
-        else:	# this case is impossible
+        else:   # this case is impossible
             print("Recreating Beeminder cache ({})[{bf1}{bf2}{bf3}{bf4}]... ".format(
                 bf1=bf1, bf2=bf2, bf3=bf3, bf4=bf4
             ))
@@ -190,14 +190,14 @@ def main():
 
         data = newdata
         # for my $x (reverse(@todelete)) {
-        #	splice(@$data,$x,1);
+        #   splice(@$data,$x,1);
         # }
-        for x in data:	 # parse the bmndr data into %ph0, %sh0, %bh
+        for x in data:   # parse the bmndr data into %ph0, %sh0, %bh
             timetuple = time.localtime(x['timestamp'])
             y, m, d, *rest = timetuple
             # XXX see note above about generalized midnight
             ts = time.strftime('%Y-%m-%d', timetuple)
-            #t = util.pd(ts)	 # XXX isn't x['timestamp'] the unix time anyway already
+            #t = util.pd(ts)     # XXX isn't x['timestamp'] the unix time anyway already
             t = x['timestamp']
             if t < start:
                 start = t
@@ -223,9 +223,9 @@ def main():
                 m = re.search(r'^(\d+)\s*(.*)$', line)
                 if not m:
                     raise ValueError("Bad line in TagTime log: " + line)
-                t = int(m.group(1))	# timestamp as parsed from the tagtime log
+                t = int(m.group(1)) # timestamp as parsed from the tagtime log
                 ts = time.localtime(t)
-                stuff = m.group(2)	# tags and comments for this line of the log
+                stuff = m.group(2)  # tags and comments for this line of the log
                 tags = util.strip(stuff)
                 if tagmatch(tags, crit, ts):
                     #print('found a match for line: {}'.format(line))
@@ -255,7 +255,7 @@ def main():
     nchg  = 0  # number of updated datapoints on beeminder
     minus = 0  # total number of pings decreased from what's on beeminder
     plus  = 0  # total number of pings increased from what's on beeminder
-    ii	  = 0
+    ii    = 0
     for t in range(daysnap(start) - 86400, daysnap(end) + 86401, 86400):
         timetuple = time.localtime(t)
         y, m, d, *rest = timetuple
@@ -281,7 +281,7 @@ def main():
             minus += p0
             beem.delete_point(slug, b)
             #print "Deleted: $y $m $d  ",$p0*$ping," \"$p0 pings: $s0 [bID:$b]\"\n";
-        elif p0 != p1 or s0 != s1:	# bmndr & tagtime log differ: UPDATE
+        elif p0 != p1 or s0 != s1:  # bmndr & tagtime log differ: UPDATE
             nchg += 1
             if p1 > p0:
                 plus += p1 - p0
@@ -313,10 +313,10 @@ def main():
             v = p * ping
             c = sh1[ts]
             b = bh[ts]
-            out = '{y} {m} {d}	{v} "{pings}: {c} [bID:{b}]"\n'.format(
+            out = '{y} {m} {d}  {v} "{pings}: {c} [bID:{b}]"\n'.format(
                 y=y, m=m, d=d, v=v, pings=util.splur(p, "ping"), c=c, b=b)
             f.write(out)
-    nd = len(ph1)				  # number of datapoints
+    nd = len(ph1)                 # number of datapoints
     if nd != nquo + nchg + nadd:  # sanity check
         print("\nERROR: total != nquo+nchg+nadd ({nd} != {nquo}+{nchg}+{nadd})\n".format(
             nd=nd, nquo=nquo, nchg=nchg, nadd=nadd))
@@ -345,8 +345,8 @@ def tagmatch(tags, crit, ts):
         for c in crit:
             if re.search(r'\b{c}\b'.format(c=c), tags):
                 return True
-            else:
-                return False
+        else:
+            return False
     elif callable(crit):
         return crit(tags, ts)
     elif hasattr(crit, 'search'):
@@ -357,7 +357,7 @@ def tagmatch(tags, crit, ts):
         sys.exit(1)
 
 def daysnap(t):
-    '''Convert a timestamp to noon on the same day.	 This matters because
+    '''Convert a timestamp to noon on the same day.  This matters because
     if you start with some timestamp and try to step forward 24 hours at a
     time then daylight savings time can screw you up.  You might add 24
     hours and still be on the same day. If you start from noon that you

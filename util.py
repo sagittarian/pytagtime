@@ -62,7 +62,7 @@ def stripc(s):
         elif s[i] in reverse_pairs:
             if openers and s[openers[-1]] == reverse_pairs[s[i]]:
                 start = openers.pop()
-                if not openers:	 # closed all parens
+                if not openers:  # closed all parens
                     result.append(s[start:i+1])
                 # else ignore/continue, will be appended to the
                 # result when the last parens is closed
@@ -72,23 +72,23 @@ def stripc(s):
 
 # Here is the original perl implementation
 # sub stripc {
-#	my($s) = @_;
-#	my $tmp = $s;
-#	while($tmp =~ s/\([^\(\)]*\)/UNIQUE78DIV/g) {}
-#	while($tmp =~ s/\[[^\[\]]*\]/UNIQUE78DIV/g) {}
-#	my @a = split('UNIQUE78DIV', $tmp);
-#	for(@a) {
-#	  my $i = index($s, $_);
-#	  substr($s, $i, length($_)) = "";
-#	}
-#	return $s;
+#   my($s) = @_;
+#   my $tmp = $s;
+#   while($tmp =~ s/\([^\(\)]*\)/UNIQUE78DIV/g) {}
+#   while($tmp =~ s/\[[^\[\]]*\]/UNIQUE78DIV/g) {}
+#   my @a = split('UNIQUE78DIV', $tmp);
+#   for(@a) {
+#     my $i = index($s, $_);
+#     substr($s, $i, length($_)) = "";
+#   }
+#   return $s;
 # }
 
 def parsable(s):
     '''Whether the given string is valid line in a tagtime log file'''
     s = self.strip(s)
     # return not (not re.search(r'^\d+\s+', s) or
-    #			  re.search(r'(\(|\)|\[|\])', s))
+    #             re.search(r'(\(|\)|\[|\])', s))
     return re.search(r'^\d+\s+', s) and not re.search(r'(\(|\)|\[|\])', s)
 
 def fetchp(s):
@@ -101,8 +101,8 @@ def fetchp(s):
 #  while($tmp =~ s/\([^\(\)]*\)/UNIQUE78DIV/g) {}
 #  my @a = split('UNIQUE78DIV', $tmp);
 #  for(@a) {
-#	 my $i = index($s, $_);
-#	 substr($s, $i, length($_)) = "";
+#    my $i = index($s, $_);
+#    substr($s, $i, length($_)) = "";
 #  }
 #  $s =~ s/^\(//;
 #  $s =~ s/\)$//;
@@ -144,7 +144,7 @@ def lockb():
 
 def lockn():
     '''Nonblocking lock -- try to get the lock and return False if we can't.'''
-    if settings.cygwin:	 # stupid windows
+    if settings.cygwin:  # stupid windows
         if os.path.exists(settings.lockf): return False
         cmd = ["/usr/bin/touch", lockf]
         callcmd(cmd)
@@ -167,7 +167,7 @@ def unlock():
         settings.lf.close()
 
 def splur(n, noun):
-    '''Singular or Plural:	Pluralize the given noun properly, if n is not 1.
+    '''Singular or Plural:  Pluralize the given noun properly, if n is not 1.
     Eg: splur(3, "boy") -> "3 boys"'''
     return '{n} {noun}{end}'.format(
         n=n, noun=noun, end='' if n == 1 else 's')
@@ -189,18 +189,18 @@ def annotime(a, t, ll=linelen):
     '''Annotates a line of text with the given timestamp.'''
     tt = datetime.datetime.fromtimestamp(t).timetuple()
     candidates = [
-        "[%Y-%m-%d %H:%M:%S %a]",   # 24 chars
-        "[%m.%d %H:%M:%S %a]",	   # 18 chars
-        "[%d %H:%M:%S %a]",		   # 15 chars
-        "[%m.%d %H:%M:%S]",		   # 14 chars
-        "[%H:%M:%S %a]",			   # 12 chars
-        "[%m.%d %H:%M]",			   # 11 chars
-        "[%d %H:%M:%S]",			   # also 11 so this will never get chosen
-        "[%H:%M %a]",			   #  9 chars
-        "[%H:%M:%S]",			   #  8 chars
-        "[%d %H:%M]",			   # also 8 so this will never get chosen
-        "[%H:%M]",				   #  5 chars
-        "[%M]"					   #  2 chars
+        "[%Y-%m-%d %H:%M:%S %a]", # 24 chars
+        "[%m.%d %H:%M:%S %a]",    # 18 chars
+        "[%d %H:%M:%S %a]",       # 15 chars
+        "[%m.%d %H:%M:%S]",       # 14 chars
+        "[%H:%M:%S %a]",          # 12 chars
+        "[%m.%d %H:%M]",          # 11 chars
+        "[%d %H:%M:%S]",          # also 11 so this will never get chosen
+        "[%H:%M %a]",             #  9 chars
+        "[%H:%M:%S]",             #  8 chars
+        "[%d %H:%M]",             # also 8 so this will never get chosen
+        "[%H:%M]",                #  5 chars
+        "[%M]"                    #  2 chars
     ]
 
     maxlen = linelen - len(a) - 1
@@ -241,7 +241,7 @@ def isnum(x):
 ## DATE/TIME FUNCTIONS FOLLOW
 #
 ## Date/time: Takes unixtime in seconds and returns list of
-##	 year, mon, day, hr, min, sec, day-of-week, day-of-year, is-daylight-time
+##   year, mon, day, hr, min, sec, day-of-week, day-of-year, is-daylight-time
 ## In python this is going to translate to time.localtime()
 #sub dt { my($t) = @_;
 #  $t = time unless defined($t);
@@ -283,9 +283,9 @@ def isnum(x):
 #  $h %= 24;
 #
 #  return ($incl=~"d" ? "$d"."d" : "").
-#		  ($incl=~"h" ? dd($h)."h" : "").
-#		  ($incl=~"m" ? dd($m).":" : "").
-#		  ($incl!~"m" ? $s : dd($s))."s";
+#         ($incl=~"h" ? dd($h)."h" : "").
+#         ($incl=~"m" ? dd($m).":" : "").
+#         ($incl!~"m" ? $s : dd($s))."s";
 #}
 #
 ## just like above but with the biggest possible unit being hours instead of days
@@ -303,8 +303,8 @@ def isnum(x):
 #  $m %= 60;
 #
 #  return ($incl=~"h" ? $h."h" : "").
-#		  ($incl=~"m" ? dd($m).":" : "").
-#		  ($incl!~"m" ? $s : dd($s))."s";
+#         ($incl=~"m" ? dd($m).":" : "").
+#         ($incl!~"m" ? $s : dd($s))."s";
 #}
 #
 #
@@ -359,10 +359,10 @@ def playsound():
 ## #define IR 2836
 ## static long seed = 1;
 ## long ran0() {
-##	 long k = (seed)/IQ;
-##	 seed = IA*((seed) - k*IQ) - IR*k;
-##	 if (seed < 0) { seed += IM; }
-##	 return (seed);
+##   long k = (seed)/IQ;
+##   seed = IA*((seed) - k*IQ) - IR*k;
+##   if (seed < 0) { seed += IM; }
+##   return (seed);
 ## }
 #
 ## Implementation of ran0 in Mathematica:

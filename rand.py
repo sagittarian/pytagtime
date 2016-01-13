@@ -6,7 +6,7 @@ class Random:
         self.IA = 7**5       # constant used for RNG
                              # (see p37 of Simulation by Ross)
         self.IM = 2**31 - 1  # constant used for RNG
-        self.seed = seed	 # state of the RNG
+        self.seed = seed     # state of the RNG
         self.initseed = seed
 
     def reset(self):
@@ -15,7 +15,7 @@ class Random:
     def ran0(self):
         '''
         Returns a random integer in [1,$IM-1]; changes self.seed, ie, RNG
-        state.	(This is ran0 from Numerical Recipes and has a period
+        state.  (This is ran0 from Numerical Recipes and has a period
         of ~2 billion.)
         '''
         self.seed = self.IA * self.seed % self.IM
