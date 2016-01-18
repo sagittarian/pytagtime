@@ -72,7 +72,21 @@ import shlex
 import subprocess
 import sys
 import time
-import pause
+try:
+    import pause
+except ImportError:
+    pause = None
+
+def wait(nextping):
+    '''Sleep till the next ping.
+
+    If available, we will use the pause library to get better precision,
+    otherwise we'll wait just a few seconds in case the machine is suspended.
+    '''
+    if pause:
+        pause.until(nextping)
+    else:
+        time.sleep(util.clip(nextping - time.time(), 0, 2))
 
 from settings import settings
 
@@ -103,8 +117,8 @@ i = 1
 while True:
     # sleep till next ping but check again in at most a few seconds in
     # case computer was off (should be event-based and check upon wake).
-    # Use the pause library to get better precision
-    pause.until(nextping)
+    wait(nxtping)
+
     # time.sleep(util.clip(nextping - time.time(), 0, 2))
     now = time.time()
 
