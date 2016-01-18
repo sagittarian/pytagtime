@@ -111,7 +111,7 @@ def main():
                 d = int(d)
                 p = int(p)
                 c = c.strip()
-                ts = '{}-{}-{}'.format(y, m, d)
+                ts = '{:04}-{:02}-{:02}'.format(y, m, d)
 
                 ph0[ts] = p
                 #$ph0{$ts} = $p;
