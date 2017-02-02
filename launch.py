@@ -80,8 +80,9 @@ if os.path.exists(settings.logf):
     if lstping == tmp:
         nxtping = rand.nextping(lstping)
     else:
+        # XXX configurable encoding
         print("TagTime log file ({logf}) has bad last line:\n{lll}".format(
-            logf=settings.logf, lll=lll))
+            logf=settings.logf, lll=lll.decode('ascii')))
         nxtping = rand.prevping(launchtime)
 else:
     nxtping = rand.prevping(launchtime)
