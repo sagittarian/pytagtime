@@ -28,7 +28,7 @@ launchtime = time.time()
 
 def editor(f, t):
     '''Launch an editor to edit file f, labeling the window with title t.'''
-    if not os.environ['DISPLAY']:
+    if not os.environ.get('DISPLAY', None):
         os.environ['DISPLAY'] = ':0.0'  # must set explicitly if run from cron
     cmd = settings.get_edit_cmd(f, t)
     util.callcmd(cmd)

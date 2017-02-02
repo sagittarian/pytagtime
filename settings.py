@@ -13,7 +13,7 @@ SETTINGS_PATH = os.path.expanduser(os.path.join('~', SETTINGS_FILE))
 # config
 
 DEFAULTS = {
-    'user': os.environ['USER'],
+    'user': os.environ.get('USER', None),
     'cygwin': False,
 
     # Pings from more than this many seconds ago get autologged with tags

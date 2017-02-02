@@ -4,7 +4,7 @@
 
 # import os
 # import subprocess
-# user = os.environ['USER']			   # CHANGEME to your username
+# user = os.environ.get('USER')			   # CHANGEME to your username
 
 # path = <path to pytagtime directory>
 # if path and path[-1] != '/':
