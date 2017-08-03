@@ -2,7 +2,6 @@
 # This uses settings from ~/.tagtimerc so that must have been loaded first. # XXX
 
 import datetime
-import math
 import re
 import subprocess
 import sys
@@ -12,14 +11,18 @@ from settings import settings
 
 linelen = settings.linelen
 
+
 def clip(x, a, b):
+    '''Clip x so that it is between a and b'''
     return max(a, min(b, x))
+
 
 def callcmd(cmd):
     if subprocess.call(cmd) != 0:
         print('SYSERR:', ' '.join(cmd), file=sys.stderr)
         return False
     return True
+
 
 def strip(s):
     '''Strips out stuff in parens and brackets;
@@ -38,6 +41,7 @@ def strip(s):
     # s = re.sub(r'\s*$', '', s)
 
     return s
+
 
 def stripb(s):
     '''Strips out stuff in brackets only; remaining brackets means
